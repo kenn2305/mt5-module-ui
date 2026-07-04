@@ -30,7 +30,12 @@
 @property (nonatomic, strong) NSMutableDictionary<NSString *, MUIScreenHandle *> *handleByElementID;
 @property (nonatomic, weak) MUIScreenHandle *selectedHandle;
 @property (nonatomic, strong) UIView *toolbar;
+@property (nonatomic, strong) UIView *precisionPanel;
 @property (nonatomic, strong) UILabel *statusLabel;
+@property (nonatomic, strong) UISlider *scaleSlider;
+@property (nonatomic, strong) UILabel *scaleValueLabel;
+@property (nonatomic, strong) UIPanGestureRecognizer *relativeMoveGesture;
+@property (nonatomic, assign) CGSize scaleBaseSize;
 @property (nonatomic, assign) BOOL linkingMode;
 @property (nonatomic, copy, nullable) NSString *photoMode;
 @end
@@ -69,13 +74,18 @@
     self.statusLabel.numberOfLines = 2;
     self.statusLabel.layer.cornerRadius = 10.0;
     self.statusLabel.clipsToBounds = YES;
-    self.statusLabel.text = @"Tap an outlined icon, drag to move, pinch to resize";
+    self.statusLabel.text = @"Select an icon • drag anywhere to move relatively";
     [self.view addSubview:self.statusLabel];
 
     [self buildToolbar];
+    [self buildPrecisionPanel];
+    self.relativeMoveGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(canvasPanned:)];
+    self.relativeMoveGesture.delegate = self;
+    self.relativeMoveGesture.maximumNumberOfTouches = 1;
+    [self.view addGestureRecognizer:self.relativeMoveGesture];
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     [NSLayoutConstraint activateConstraints:@[
-        [self.statusLabel.bottomAnchor constraintEqualToAnchor:self.toolbar.topAnchor constant:-6.0],
+        [self.statusLabel.bottomAnchor constraintEqualToAnchor:self.precisionPanel.topAnchor constant:-6.0],
         [self.statusLabel.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
         [self.statusLabel.widthAnchor constraintLessThanOrEqualToAnchor:safe.widthAnchor constant:-24.0],
         [self.statusLabel.heightAnchor constraintGreaterThanOrEqualToConstant:34.0],
@@ -129,6 +139,58 @@
         [stack.trailingAnchor constraintEqualToAnchor:background.contentView.trailingAnchor constant:-4.0],
         [stack.topAnchor constraintEqualToAnchor:background.contentView.topAnchor],
         [stack.bottomAnchor constraintEqualToAnchor:background.contentView.bottomAnchor]
+    ]];
+}
+
+- (void)buildPrecisionPanel {
+    UIVisualEffectView *background = [[UIVisualEffectView alloc]
+        initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark]];
+    background.translatesAutoresizingMaskIntoConstraints = NO;
+    background.layer.cornerRadius = 14.0;
+    background.clipsToBounds = YES;
+    self.precisionPanel = background;
+    [self.view addSubview:background];
+
+    UILabel *title = [UILabel new];
+    title.text = @"Scale";
+    title.textColor = UIColor.whiteColor;
+    title.font = [UIFont systemFontOfSize:12.0 weight:UIFontWeightSemibold];
+    title.translatesAutoresizingMaskIntoConstraints = NO;
+
+    self.scaleSlider = [UISlider new];
+    self.scaleSlider.minimumValue = 0.2;
+    self.scaleSlider.maximumValue = 5.0;
+    self.scaleSlider.value = 1.0;
+    self.scaleSlider.enabled = NO;
+    self.scaleSlider.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.scaleSlider addTarget:self action:@selector(scaleSliderChanged:)
+               forControlEvents:UIControlEventValueChanged];
+
+    self.scaleValueLabel = [UILabel new];
+    self.scaleValueLabel.text = @"1.00×";
+    self.scaleValueLabel.textColor = UIColor.whiteColor;
+    self.scaleValueLabel.textAlignment = NSTextAlignmentRight;
+    self.scaleValueLabel.font = [UIFont monospacedDigitSystemFontOfSize:12.0 weight:UIFontWeightSemibold];
+    self.scaleValueLabel.translatesAutoresizingMaskIntoConstraints = NO;
+
+    [background.contentView addSubview:title];
+    [background.contentView addSubview:self.scaleSlider];
+    [background.contentView addSubview:self.scaleValueLabel];
+    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
+    [NSLayoutConstraint activateConstraints:@[
+        [background.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:8.0],
+        [background.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-8.0],
+        [background.bottomAnchor constraintEqualToAnchor:self.toolbar.topAnchor constant:-6.0],
+        [background.heightAnchor constraintEqualToConstant:46.0],
+        [title.leadingAnchor constraintEqualToAnchor:background.contentView.leadingAnchor constant:12.0],
+        [title.centerYAnchor constraintEqualToAnchor:background.contentView.centerYAnchor],
+        [title.widthAnchor constraintEqualToConstant:38.0],
+        [self.scaleSlider.leadingAnchor constraintEqualToAnchor:title.trailingAnchor constant:8.0],
+        [self.scaleSlider.centerYAnchor constraintEqualToAnchor:background.contentView.centerYAnchor],
+        [self.scaleValueLabel.leadingAnchor constraintEqualToAnchor:self.scaleSlider.trailingAnchor constant:8.0],
+        [self.scaleValueLabel.trailingAnchor constraintEqualToAnchor:background.contentView.trailingAnchor constant:-12.0],
+        [self.scaleValueLabel.centerYAnchor constraintEqualToAnchor:background.contentView.centerYAnchor],
+        [self.scaleValueLabel.widthAnchor constraintEqualToConstant:48.0]
     ]];
 }
 
@@ -201,6 +263,9 @@
     [self.handleByElementID removeAllObjects];
     [self.candidateByID removeAllObjects];
     self.selectedHandle = nil;
+    self.scaleSlider.enabled = NO;
+    self.scaleSlider.value = 1.0;
+    self.scaleValueLabel.text = @"1.00×";
 
     self.candidates = [[MUIScreenOverlayManager sharedManager] scanCandidatesInRootView:self.rootView tabBar:self.tabBar];
     for (MUIScreenCandidate *candidate in self.candidates) self.candidateByID[candidate.identifier] = candidate;
@@ -273,10 +338,40 @@
     self.selectedHandle.layer.borderWidth = 1.0;
     self.selectedHandle.layer.borderColor = UIColor.systemBlueColor.CGColor;
     self.selectedHandle = handle;
+    self.scaleBaseSize = handle.bounds.size;
+    self.scaleSlider.value = 1.0;
+    self.scaleSlider.enabled = YES;
+    self.scaleValueLabel.text = @"1.00×";
     handle.layer.borderWidth = 3.0;
     handle.layer.borderColor = UIColor.systemYellowColor.CGColor;
     NSString *name = [self mutableElementForID:handle.elementID][@"name"] ?: self.candidateByID[handle.targetID].displayName ?: @"Icon";
     self.statusLabel.text = [NSString stringWithFormat:@"Selected: %@", name];
+}
+
+- (void)scaleSliderChanged:(UISlider *)slider {
+    MUIScreenHandle *handle = self.selectedHandle;
+    if (!handle) return;
+    CGFloat scale = slider.value;
+    CGFloat width = MIN(MAX(self.scaleBaseSize.width * scale, 8.0), 360.0);
+    CGFloat height = MIN(MAX(self.scaleBaseSize.height * scale, 8.0), 360.0);
+    handle.bounds = CGRectMake(0, 0, width, height);
+    self.scaleValueLabel.text = [NSString stringWithFormat:@"%.2f×", scale];
+    [self materializeElementForHandle:handle];
+}
+
+- (void)canvasPanned:(UIPanGestureRecognizer *)gesture {
+    MUIScreenHandle *handle = self.selectedHandle;
+    if (!handle) return;
+    CGPoint translation = [gesture translationInView:self.view];
+    handle.center = CGPointMake(handle.center.x + translation.x, handle.center.y + translation.y);
+    [gesture setTranslation:CGPointZero inView:self.view];
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        self.statusLabel.text = @"Precision move: icon follows finger delta";
+    }
+    if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+        [self materializeElementForHandle:handle];
+        self.statusLabel.text = @"Position updated • tap Apply to save";
+    }
 }
 
 - (void)handleTapped:(MUIScreenHandle *)handle {
@@ -331,6 +426,17 @@
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
         shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return YES;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    if (gestureRecognizer != self.relativeMoveGesture) return YES;
+    if (!self.selectedHandle) return NO;
+    UIView *touchView = touch.view;
+    if ([touchView isDescendantOfView:self.toolbar] ||
+        [touchView isDescendantOfView:self.precisionPanel] ||
+        [touchView isDescendantOfView:self.statusLabel] ||
+        [touchView isKindOfClass:MUIScreenHandle.class]) return NO;
     return YES;
 }
 
@@ -474,6 +580,7 @@
         [self.selectedHandle removeFromSuperview];
         self.statusLabel.text = @"Custom icon deleted";
         self.selectedHandle = nil;
+        self.scaleSlider.enabled = NO;
         return;
     }
     [self materializeElementForHandle:self.selectedHandle];

@@ -77,7 +77,7 @@ if "moveRowAtIndexPath" not in designer:
     fail("drag reorder implementation is missing")
 
 screen_editor = (ROOT / "Sources/MUIScreenEditorViewController.m").read_text(encoding="utf-8")
-for feature in ("handlePanned", "handlePinched", "Choose from Photos", "linkTapped", "addCustomElement"):
+for feature in ("handlePanned", "handlePinched", "Choose from Photos", "linkTapped", "addCustomElement", "scaleSliderChanged", "canvasPanned"):
     if feature not in screen_editor:
         fail(f"screen icon editor is missing feature: {feature}")
 

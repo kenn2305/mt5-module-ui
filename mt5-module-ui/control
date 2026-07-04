@@ -1,6 +1,6 @@
 Package: com.vietanh.mt5moduleui
 Name: MT5 Module UI
-Version: 0.2.2
+Version: 0.2.3
 Architecture: iphoneos-arm64
 Description: Live tab and in-screen icon layout designer for MetaTrader 5.
 Maintainer: Viet Anh
