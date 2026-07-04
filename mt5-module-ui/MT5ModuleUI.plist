@@ -1,0 +1,10 @@
+{
+    Filter = {
+        Bundles = (
+            "net.metaquotes.MetaTrader5Terminal"
+        );
+        Executables = (
+            "MetaTrader5Terminal"
+        );
+    };
+}

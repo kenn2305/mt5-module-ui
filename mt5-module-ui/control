@@ -1,0 +1,11 @@
+Package: com.vietanh.mt5moduleui
+Name: MT5 Module UI
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Live module designer for MetaTrader 5 tabs with safe rollback.
+Maintainer: Viet Anh
+Author: Viet Anh
+Section: Tweaks
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Tag: role::hacker

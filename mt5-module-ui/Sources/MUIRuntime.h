@@ -1,0 +1,21 @@
+#import <UIKit/UIKit.h>
+
+@class MUIModule;
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface MUIRuntime : NSObject
+
+@property (nonatomic, weak, readonly, nullable) UITabBarController *tabBarController;
+@property (nonatomic, copy, readonly) NSArray<MUIModule *> *currentModules;
+
++ (instancetype)sharedRuntime;
+- (void)observeTabBarController:(UITabBarController *)tabBarController;
+- (NSArray<MUIModule *> *)editableSnapshot;
+- (BOOL)applyAndSaveModules:(NSArray<MUIModule *> *)modules error:(NSError **)error;
+- (BOOL)resetToOriginalWithError:(NSError **)error;
+- (void)presentDesigner;
+
+@end
+
+NS_ASSUME_NONNULL_END
