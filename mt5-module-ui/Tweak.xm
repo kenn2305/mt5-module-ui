@@ -28,6 +28,7 @@
 %hook UIViewController
 
 - (void)viewWillAppear:(BOOL)animated {
+    [[MUIRuntime sharedRuntime] prepareContentViewController:self];
     %orig;
     [[MUIRuntime sharedRuntime] observeContentViewController:self];
 }

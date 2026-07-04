@@ -59,6 +59,23 @@
     });
 }
 
+- (void)prepareContentViewController:(UIViewController *)viewController {
+    if (!viewController || !self.tabBarController || !self.tabBarController.view.window) return;
+    if ([NSStringFromClass(viewController.class) hasPrefix:@"MUI"]) return;
+    UITabBarController *owner = viewController.tabBarController;
+    BOOL isRootTab = [self.tabBarController.viewControllers containsObject:viewController];
+    if (owner != self.tabBarController && !isRootTab) return;
+
+    // Use the controller receiving viewWillAppear instead of selectedViewController.
+    // During an animated tab transition UIKit may not update selectedViewController
+    // until later, which previously caused the layout to appear ~0.5 s late.
+    UIViewController *leaf = [self topViewControllerFrom:viewController];
+    NSString *screenID = [[MUIScreenOverlayManager sharedManager] screenIDForViewController:leaf];
+    [[MUIScreenOverlayManager sharedManager] applyScreenID:screenID
+                                                 rootView:self.tabBarController.view
+                                                   tabBar:self.tabBarController.tabBar];
+}
+
 - (void)refreshCurrentScreenLayout {
     if (!self.tabBarController || !self.tabBarController.view.window) return;
     if (self.tabBarController.presentedViewController) return;

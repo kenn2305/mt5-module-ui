@@ -67,6 +67,8 @@ if "0.15 * NSEC_PER_SEC" in runtime:
     fail("screen layout still contains a visible delayed-apply path")
 if "refreshCurrentScreenLayout" not in runtime:
     fail("screen layout immediate refresh path is missing")
+if "prepareContentViewController" not in runtime:
+    fail("incoming controller pre-display layout path is missing")
 
 designer = (ROOT / "Sources/MUIDesignerViewController.m").read_text(encoding="utf-8")
 if "PHPickerViewController" not in designer:

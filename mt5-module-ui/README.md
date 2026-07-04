@@ -13,6 +13,7 @@ Rootless tweak cho MetaTrader 5 trên iOS 15–16. Tool lấy trực tiếp các
 - Thêm icon mới từ Photos hoặc thư viện hình Plus/Pencil/Clock/Menu/More/Chart.
 - Liên kết icon mới với hành động của nút MT5 gốc.
 - Áp layout ngay từ `viewWillAppear` để tránh icon lóe ở vị trí mặc định khi đổi tab.
+- Dùng chính controller sắp xuất hiện thay vì chờ `selectedViewController`, loại bỏ độ trễ của transition.
 - Apply trực tiếp bằng cách sắp xếp lại controller gốc của MT5.
 - Lưu JSON atomic, giữ bản backup và Reset về layout gốc.
 - Tự bỏ qua module không nhận diện được và đưa module mới của MT5 vào cuối danh sách.

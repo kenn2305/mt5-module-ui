@@ -227,6 +227,7 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
         if (target.sourceView) [self hideOriginalView:target.sourceView];
     }
     [CATransaction commit];
+    [CATransaction flush];
 }
 
 @end

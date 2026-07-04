@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedRuntime;
 - (void)observeTabBarController:(UITabBarController *)tabBarController;
 - (void)observeContentViewController:(UIViewController *)viewController;
+- (void)prepareContentViewController:(UIViewController *)viewController;
 - (void)refreshCurrentScreenLayout;
 - (NSArray<MUIModule *> *)editableSnapshot;
 - (BOOL)applyAndSaveModules:(NSArray<MUIModule *> *)modules error:(NSError **)error;
