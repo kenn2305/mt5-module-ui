@@ -77,12 +77,12 @@ if "moveRowAtIndexPath" not in designer:
     fail("drag reorder implementation is missing")
 
 screen_editor = (ROOT / "Sources/MUIScreenEditorViewController.m").read_text(encoding="utf-8")
-for feature in ("handlePanned", "handlePinched", "Choose from Photos", "linkTapped", "addCustomElement", "scaleSliderChanged", "canvasPanned"):
+for feature in ("handlePanned", "handlePinched", "Choose from Photos", "linkTapped", "addCustomElement", "scaleSliderChanged", "canvasPanned", "maximumValue = 50.0"):
     if feature not in screen_editor:
         fail(f"screen icon editor is missing feature: {feature}")
 
 overlay_manager = (ROOT / "Sources/MUIScreenOverlayManager.m").read_text(encoding="utf-8")
-for invariant in ("sendActionsForControlEvents", "removeOverlaysAndRestoreOriginals", "scanCandidatesInRootView"):
+for invariant in ("sendActionsForControlEvents", "removeOverlaysAndRestoreOriginals", "removeOverlayAndRestoreOriginalsForRootView", "scanCandidatesInRootView", "hostsByRoot", "presentActionPanelForElement"):
     if invariant not in overlay_manager:
         fail(f"screen overlay manager is missing invariant: {invariant}")
 

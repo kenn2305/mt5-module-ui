@@ -34,7 +34,9 @@ Designer đang mở trên chính tab/controller thật của phiên MT5 hiện t
 5. Chạm icon để chọn, kéo để đổi vị trí, pinch để đổi kích thước.
 6. Dùng **Replace**, **Hide/Delete** hoặc **Add** rồi nhấn **Apply**.
 
-Với icon quá nhỏ, dùng thanh **Scale** (`0.2×` đến `5×`) để thu/phóng bằng một ngón. Sau khi chọn icon, kéo ở vùng trống bất kỳ để di chuyển tương đối theo độ lệch của ngón tay; icon không nhảy tâm vào vị trí chạm.
+Với icon quá nhỏ, dùng thanh **Scale** (`0.2×` đến `50×`) để thu/phóng bằng một ngón. Sau khi chọn icon, kéo ở vùng trống bất kỳ để di chuyển tương đối theo độ lệch của ngón tay; icon không nhảy tâm vào vị trí chạm.
+
+Mỗi tab giữ overlay trong chính cây view của tab đó. Vì icon custom và icon mặc định cùng được UIKit chuyển cảnh, ảnh của tab cũ không thể nằm đè hoặc nháy trên tab mới. Sau Apply, chạm một icon custom sẽ mở bottom action panel **Số dư / Tiền nạp / Tiền rút / Hủy**.
 
 Icon mới mặc định là hình hiển thị. Muốn nó thực hiện một chức năng, chọn icon mới → **Link** → chạm nút MT5 gốc cần sao chép hành động. Editor lưu layout riêng theo class/title của từng màn hình và áp lại khi màn hình xuất hiện.
 

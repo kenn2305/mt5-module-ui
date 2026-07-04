@@ -10,6 +10,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSArray<MUIScreenCandidate *> *)scanCandidatesInRootView:(UIView *)rootView
                                                    tabBar:(nullable UITabBar *)tabBar;
 - (void)removeOverlaysAndRestoreOriginals;
+- (void)removeOverlayAndRestoreOriginalsForRootView:(UIView *)rootView;
 - (void)applyScreenID:(NSString *)screenID
              rootView:(UIView *)rootView
                tabBar:(nullable UITabBar *)tabBar;

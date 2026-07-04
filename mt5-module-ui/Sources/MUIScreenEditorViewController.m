@@ -98,7 +98,7 @@
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    [[MUIScreenOverlayManager sharedManager] removeOverlaysAndRestoreOriginals];
+    [[MUIScreenOverlayManager sharedManager] removeOverlayAndRestoreOriginalsForRootView:self.rootView];
     [self reloadCanvas];
 }
 
@@ -159,7 +159,7 @@
 
     self.scaleSlider = [UISlider new];
     self.scaleSlider.minimumValue = 0.2;
-    self.scaleSlider.maximumValue = 5.0;
+    self.scaleSlider.maximumValue = 50.0;
     self.scaleSlider.value = 1.0;
     self.scaleSlider.enabled = NO;
     self.scaleSlider.translatesAutoresizingMaskIntoConstraints = NO;
@@ -190,7 +190,7 @@
         [self.scaleValueLabel.leadingAnchor constraintEqualToAnchor:self.scaleSlider.trailingAnchor constant:8.0],
         [self.scaleValueLabel.trailingAnchor constraintEqualToAnchor:background.contentView.trailingAnchor constant:-12.0],
         [self.scaleValueLabel.centerYAnchor constraintEqualToAnchor:background.contentView.centerYAnchor],
-        [self.scaleValueLabel.widthAnchor constraintEqualToConstant:48.0]
+        [self.scaleValueLabel.widthAnchor constraintEqualToConstant:62.0]
     ]];
 }
 
@@ -352,8 +352,8 @@
     MUIScreenHandle *handle = self.selectedHandle;
     if (!handle) return;
     CGFloat scale = slider.value;
-    CGFloat width = MIN(MAX(self.scaleBaseSize.width * scale, 8.0), 360.0);
-    CGFloat height = MIN(MAX(self.scaleBaseSize.height * scale, 8.0), 360.0);
+    CGFloat width = MIN(MAX(self.scaleBaseSize.width * scale, 8.0), 20000.0);
+    CGFloat height = MIN(MAX(self.scaleBaseSize.height * scale, 8.0), 20000.0);
     handle.bounds = CGRectMake(0, 0, width, height);
     self.scaleValueLabel.text = [NSString stringWithFormat:@"%.2f×", scale];
     [self materializeElementForHandle:handle];
@@ -415,8 +415,8 @@
 - (void)handlePinched:(UIPinchGestureRecognizer *)gesture {
     MUIScreenHandle *handle = (MUIScreenHandle *)gesture.view;
     if (gesture.state == UIGestureRecognizerStateBegan) [self selectHandle:handle];
-    CGFloat width = MIN(MAX(CGRectGetWidth(handle.bounds) * gesture.scale, 20.0), 360.0);
-    CGFloat height = MIN(MAX(CGRectGetHeight(handle.bounds) * gesture.scale, 20.0), 360.0);
+    CGFloat width = MIN(MAX(CGRectGetWidth(handle.bounds) * gesture.scale, 8.0), 20000.0);
+    CGFloat height = MIN(MAX(CGRectGetHeight(handle.bounds) * gesture.scale, 8.0), 20000.0);
     handle.bounds = CGRectMake(0, 0, width, height);
     gesture.scale = 1.0;
     if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
@@ -607,7 +607,7 @@
         return;
     }
     [self.elements removeAllObjects];
-    [[MUIScreenOverlayManager sharedManager] removeOverlaysAndRestoreOriginals];
+    [[MUIScreenOverlayManager sharedManager] removeOverlayAndRestoreOriginalsForRootView:self.rootView];
     [self reloadCanvas];
     self.statusLabel.text = @"Original screen layout restored";
 }

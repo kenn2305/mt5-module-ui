@@ -59,6 +59,18 @@
     });
 }
 
+- (UIViewController *)tabRootControllerForController:(UIViewController *)viewController {
+    if (!viewController || !self.tabBarController) return nil;
+    UIViewController *cursor = viewController;
+    while (cursor.parentViewController && cursor.parentViewController != self.tabBarController) {
+        cursor = cursor.parentViewController;
+    }
+    if (cursor.parentViewController == self.tabBarController ||
+        [self.tabBarController.viewControllers containsObject:cursor]) return cursor;
+    if ([self.tabBarController.viewControllers containsObject:viewController]) return viewController;
+    return nil;
+}
+
 - (void)prepareContentViewController:(UIViewController *)viewController {
     if (!viewController || !self.tabBarController || !self.tabBarController.view.window) return;
     if ([NSStringFromClass(viewController.class) hasPrefix:@"MUI"]) return;
@@ -70,10 +82,12 @@
     // During an animated tab transition UIKit may not update selectedViewController
     // until later, which previously caused the layout to appear ~0.5 s late.
     UIViewController *leaf = [self topViewControllerFrom:viewController];
+    UIViewController *tabRoot = [self tabRootControllerForController:viewController];
+    if (!tabRoot) return;
     NSString *screenID = [[MUIScreenOverlayManager sharedManager] screenIDForViewController:leaf];
     [[MUIScreenOverlayManager sharedManager] applyScreenID:screenID
-                                                 rootView:self.tabBarController.view
-                                                   tabBar:self.tabBarController.tabBar];
+                                                 rootView:tabRoot.view
+                                                   tabBar:nil];
 }
 
 - (void)refreshCurrentScreenLayout {
@@ -84,8 +98,8 @@
     UIViewController *leaf = [self topViewControllerFrom:selected];
     NSString *screenID = [[MUIScreenOverlayManager sharedManager] screenIDForViewController:leaf];
     [[MUIScreenOverlayManager sharedManager] applyScreenID:screenID
-                                                 rootView:self.tabBarController.view
-                                                   tabBar:self.tabBarController.tabBar];
+                                                 rootView:selected.view
+                                                   tabBar:nil];
 }
 
 - (NSString *)identifierForController:(UIViewController *)controller
@@ -342,12 +356,14 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         if (!self.tabBarController || self.tabBarController.presentedViewController) return;
         UIViewController *leaf = [self topViewControllerFrom:self.tabBarController.selectedViewController];
+        UIViewController *tabRoot = self.tabBarController.selectedViewController;
+        if (!tabRoot) return;
         NSString *screenID = [[MUIScreenOverlayManager sharedManager] screenIDForViewController:leaf];
-        [[MUIScreenOverlayManager sharedManager] removeOverlaysAndRestoreOriginals];
+        [[MUIScreenOverlayManager sharedManager] removeOverlayAndRestoreOriginalsForRootView:tabRoot.view];
         MUIScreenEditorViewController *editor = [[MUIScreenEditorViewController alloc]
             initWithRuntime:self
-                   rootView:self.tabBarController.view
-                     tabBar:self.tabBarController.tabBar
+                   rootView:tabRoot.view
+                     tabBar:nil
                    screenID:screenID];
         [leaf presentViewController:editor animated:YES completion:nil];
     });

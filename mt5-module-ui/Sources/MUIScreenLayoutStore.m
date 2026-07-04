@@ -83,7 +83,7 @@ static NSString * const MUIScreenLayoutErrorDomain = @"com.vietanh.mt5moduleui.s
             ![frame isKindOfClass:NSDictionary.class]) continue;
         CGFloat width = [frame[@"w"] doubleValue];
         CGFloat height = [frame[@"h"] doubleValue];
-        if (width <= 0.0 || height <= 0.0 || width > 1.0 || height > 1.0) continue;
+        if (width <= 0.0 || height <= 0.0 || width > 50.0 || height > 50.0) continue;
         [identifiers addObject:identifier];
         [sanitized addObject:[element copy]];
     }

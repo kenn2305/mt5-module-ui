@@ -17,6 +17,7 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
 
 @interface MUIForwardingButton : UIButton
 @property (nonatomic, weak) UIControl *forwardTarget;
+@property (nonatomic, copy, nullable) dispatch_block_t tapHandler;
 @end
 
 @implementation MUIForwardingButton
@@ -26,13 +27,15 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
     return self;
 }
 - (void)forwardTap {
-    [self.forwardTarget sendActionsForControlEvents:UIControlEventTouchUpInside];
+    if (self.tapHandler) self.tapHandler();
+    else [self.forwardTarget sendActionsForControlEvents:UIControlEventTouchUpInside];
 }
 @end
 
 @interface MUIScreenOverlayManager ()
-@property (nonatomic, strong) NSMapTable<UIView *, NSNumber *> *originalHiddenStates;
-@property (nonatomic, weak) UIView *activeHost;
+@property (nonatomic, strong) NSMapTable<UIView *, UIView *> *hostsByRoot;
+@property (nonatomic, strong) NSMapTable<UIView *, NSMapTable<UIView *, NSNumber *> *> *hiddenStatesByRoot;
+@property (nonatomic, strong) NSMapTable<UIView *, NSString *> *screenIDsByRoot;
 @end
 
 @implementation MUIScreenOverlayManager
@@ -46,7 +49,11 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
 
 - (instancetype)init {
     self = [super init];
-    if (self) _originalHiddenStates = [NSMapTable weakToStrongObjectsMapTable];
+    if (self) {
+        _hostsByRoot = [NSMapTable weakToStrongObjectsMapTable];
+        _hiddenStatesByRoot = [NSMapTable weakToStrongObjectsMapTable];
+        _screenIDsByRoot = [NSMapTable weakToStrongObjectsMapTable];
+    }
     return self;
 }
 
@@ -129,19 +136,44 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
     return results;
 }
 
-- (void)hideOriginalView:(UIView *)view {
-    if (!view || [self.originalHiddenStates objectForKey:view]) return;
-    [self.originalHiddenStates setObject:@(view.hidden) forKey:view];
+- (NSMapTable<UIView *, NSNumber *> *)hiddenStatesForRoot:(UIView *)root create:(BOOL)create {
+    NSMapTable *states = [self.hiddenStatesByRoot objectForKey:root];
+    if (!states && create) {
+        states = [NSMapTable weakToStrongObjectsMapTable];
+        [self.hiddenStatesByRoot setObject:states forKey:root];
+    }
+    return states;
+}
+
+- (void)hideOriginalView:(UIView *)view inRoot:(UIView *)root {
+    if (!view || !root) return;
+    NSMapTable *states = [self hiddenStatesForRoot:root create:YES];
+    if ([states objectForKey:view]) return;
+    [states setObject:@(view.hidden) forKey:view];
     view.hidden = YES;
 }
 
-- (void)removeOverlaysAndRestoreOriginals {
-    [self.activeHost removeFromSuperview];
-    for (UIView *view in self.originalHiddenStates.keyEnumerator) {
-        NSNumber *hidden = [self.originalHiddenStates objectForKey:view];
+- (void)removeOverlayAndRestoreOriginalsForRootView:(UIView *)rootView {
+    if (!rootView) return;
+    [[self.hostsByRoot objectForKey:rootView] removeFromSuperview];
+    NSMapTable *states = [self hiddenStatesForRoot:rootView create:NO];
+    for (UIView *view in states.keyEnumerator) {
+        NSNumber *hidden = [states objectForKey:view];
         view.hidden = hidden.boolValue;
     }
-    [self.originalHiddenStates removeAllObjects];
+    [states removeAllObjects];
+    [self.hostsByRoot removeObjectForKey:rootView];
+    [self.hiddenStatesByRoot removeObjectForKey:rootView];
+    [self.screenIDsByRoot removeObjectForKey:rootView];
+}
+
+- (void)removeOverlaysAndRestoreOriginals {
+    NSMutableArray<UIView *> *roots = [NSMutableArray array];
+    for (UIView *root in self.hostsByRoot.keyEnumerator) if (root) [roots addObject:root];
+    for (UIView *root in self.hiddenStatesByRoot.keyEnumerator) {
+        if (root && ![roots containsObject:root]) [roots addObject:root];
+    }
+    for (UIView *root in roots) [self removeOverlayAndRestoreOriginalsForRootView:root];
 }
 
 - (CGRect)frameFromDictionary:(NSDictionary *)dictionary inBounds:(CGRect)bounds {
@@ -160,12 +192,56 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
     return custom ?: symbolImage ?: fallback;
 }
 
+- (UIViewController *)topViewControllerFrom:(UIViewController *)controller {
+    if (controller.presentedViewController) return [self topViewControllerFrom:controller.presentedViewController];
+    if ([controller isKindOfClass:UINavigationController.class]) {
+        return [self topViewControllerFrom:((UINavigationController *)controller).visibleViewController];
+    }
+    if ([controller isKindOfClass:UITabBarController.class]) {
+        return [self topViewControllerFrom:((UITabBarController *)controller).selectedViewController];
+    }
+    return controller;
+}
+
+- (void)presentActionPanelForElement:(NSDictionary *)element
+                       forwardTarget:(UIControl *)forwardTarget
+                          sourceView:(UIView *)sourceView {
+    UIWindow *window = sourceView.window;
+    UIViewController *presenter = window.rootViewController
+        ? [self topViewControllerFrom:window.rootViewController] : nil;
+    if (!presenter || presenter.presentedViewController) return;
+
+    NSString *title = [element[@"panel_title"] isKindOfClass:NSString.class]
+        ? element[@"panel_title"] : @"Số dư";
+    NSString *message = [element[@"panel_message"] isKindOfClass:NSString.class]
+        ? element[@"panel_message"] : @"Nhanh chóng di chuyển đến trang nạp/rút tiền trên trang web của broker";
+    UIAlertController *panel = [UIAlertController alertControllerWithTitle:title
+                                                                   message:message
+                                                            preferredStyle:UIAlertControllerStyleActionSheet];
+    [panel addAction:[UIAlertAction actionWithTitle:@"Tiền nạp" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [forwardTarget sendActionsForControlEvents:UIControlEventTouchUpInside];
+    }]];
+    [panel addAction:[UIAlertAction actionWithTitle:@"Tiền rút" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [forwardTarget sendActionsForControlEvents:UIControlEventTouchUpInside];
+    }]];
+    [panel addAction:[UIAlertAction actionWithTitle:@"Hủy" style:UIAlertActionStyleCancel handler:nil]];
+    panel.popoverPresentationController.sourceView = sourceView;
+    panel.popoverPresentationController.sourceRect = sourceView.bounds;
+    [presenter presentViewController:panel animated:YES completion:nil];
+}
+
 - (void)applyScreenID:(NSString *)screenID rootView:(UIView *)rootView tabBar:(UITabBar *)tabBar {
-    if (screenID.length == 0 || !rootView || !rootView.window) return;
+    if (screenID.length == 0 || !rootView) return;
+    UIView *cachedHost = [self.hostsByRoot objectForKey:rootView];
+    NSString *cachedScreenID = [self.screenIDsByRoot objectForKey:rootView];
+    if (cachedHost && [cachedScreenID isEqualToString:screenID]) {
+        [rootView bringSubviewToFront:cachedHost];
+        return;
+    }
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
     [rootView layoutIfNeeded];
-    [self removeOverlaysAndRestoreOriginals];
+    [self removeOverlayAndRestoreOriginalsForRootView:rootView];
     NSArray<NSDictionary *> *elements = [[MUIScreenLayoutStore sharedStore] elementsForScreenID:screenID];
     if (elements.count == 0) {
         [CATransaction commit];
@@ -181,14 +257,15 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
     host.backgroundColor = UIColor.clearColor;
     host.tag = MUIScreenOverlayHostTag;
     [rootView addSubview:host];
-    self.activeHost = host;
+    [self.hostsByRoot setObject:host forKey:rootView];
+    [self.screenIDsByRoot setObject:screenID forKey:rootView];
 
     for (NSDictionary *element in elements) {
         NSString *type = element[@"type"];
         NSString *targetID = element[@"target_id"];
         MUIScreenCandidate *target = [type isEqualToString:@"existing"] ? candidateByID[targetID] : nil;
         if ([element[@"hidden"] boolValue]) {
-            if (target.sourceView) [self hideOriginalView:target.sourceView];
+            if (target.sourceView) [self hideOriginalView:target.sourceView inRoot:rootView];
             continue;
         }
 
@@ -203,13 +280,24 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
             ? (UIControl *)actionCandidate.sourceView : nil;
 
         UIView *overlay = nil;
-        if (actionControl) {
+        BOOL isCustom = [type isEqualToString:@"custom"];
+        if (actionControl || isCustom) {
             MUIForwardingButton *button = [[MUIForwardingButton alloc] initWithFrame:frame];
             [button setImage:image forState:UIControlStateNormal];
             button.imageView.contentMode = UIViewContentModeScaleAspectFit;
             button.tintColor = target.sourceView.tintColor ?: rootView.tintColor;
             button.forwardTarget = actionControl;
             button.accessibilityLabel = element[@"name"] ?: target.displayName;
+            if (isCustom) {
+                __weak typeof(self) weakSelf = self;
+                __weak UIControl *weakTarget = actionControl;
+                __weak UIView *weakSource = button;
+                button.tapHandler = ^{
+                    [weakSelf presentActionPanelForElement:element
+                                             forwardTarget:weakTarget
+                                                sourceView:weakSource];
+                };
+            }
             overlay = button;
         } else {
             UIImageView *imageView = [[UIImageView alloc] initWithImage:image];
@@ -224,7 +312,7 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
             if ([overlay isKindOfClass:UIButton.class]) [(UIButton *)overlay setImage:[image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate] forState:UIControlStateNormal];
         }
         [host addSubview:overlay];
-        if (target.sourceView) [self hideOriginalView:target.sourceView];
+        if (target.sourceView) [self hideOriginalView:target.sourceView inRoot:rootView];
     }
     [CATransaction commit];
     [CATransaction flush];
