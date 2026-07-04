@@ -14,6 +14,9 @@
 @end
 
 @implementation MUIScreenHandle
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
+    return CGRectContainsPoint(CGRectInset(self.bounds, -10.0, -10.0), point);
+}
 @end
 
 @interface MUIScreenEditorViewController () <PHPickerViewControllerDelegate, UIGestureRecognizerDelegate>
@@ -72,7 +75,7 @@
     [self buildToolbar];
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     [NSLayoutConstraint activateConstraints:@[
-        [self.statusLabel.topAnchor constraintEqualToAnchor:safe.topAnchor constant:6.0],
+        [self.statusLabel.bottomAnchor constraintEqualToAnchor:self.toolbar.topAnchor constant:-6.0],
         [self.statusLabel.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
         [self.statusLabel.widthAnchor constraintLessThanOrEqualToAnchor:safe.widthAnchor constant:-24.0],
         [self.statusLabel.heightAnchor constraintGreaterThanOrEqualToConstant:34.0],
@@ -242,7 +245,7 @@
                        actionable:(BOOL)actionable
                            hidden:(BOOL)hidden {
     if (elementID.length == 0 || CGRectIsEmpty(frame)) return;
-    MUIScreenHandle *handle = [[MUIScreenHandle alloc] initWithFrame:CGRectInset(frame, -4.0, -4.0)];
+    MUIScreenHandle *handle = [[MUIScreenHandle alloc] initWithFrame:frame];
     handle.elementID = elementID;
     handle.targetID = targetID;
     handle.elementType = type;
