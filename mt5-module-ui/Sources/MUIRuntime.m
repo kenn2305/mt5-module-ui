@@ -15,7 +15,6 @@
 @property (nonatomic, assign) BOOL disableSavedLayoutForThisLaunch;
 @property (nonatomic, assign) BOOL handledCrashMarker;
 @property (nonatomic, weak) UILongPressGestureRecognizer *designerGesture;
-@property (nonatomic, assign) NSUInteger screenRefreshGeneration;
 @end
 
 @implementation MUIRuntime
@@ -48,17 +47,28 @@
 }
 
 - (void)observeContentViewController:(UIViewController *)viewController {
-    if (!viewController.view.window || !self.tabBarController) return;
+    if (!self.tabBarController || !self.tabBarController.view.window) return;
     if ([NSStringFromClass(viewController.class) hasPrefix:@"MUI"]) return;
-    NSUInteger generation = ++self.screenRefreshGeneration;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (generation != self.screenRefreshGeneration || self.tabBarController.presentedViewController) return;
-        UIViewController *leaf = [self topViewControllerFrom:self.tabBarController.selectedViewController];
-        NSString *screenID = [[MUIScreenOverlayManager sharedManager] screenIDForViewController:leaf];
-        [[MUIScreenOverlayManager sharedManager] applyScreenID:screenID
-                                                     rootView:self.tabBarController.view
-                                                       tabBar:self.tabBarController.tabBar];
+    // Apply before the next frame is committed so the original icon never
+    // flashes at its default position during a tab transition.
+    [self refreshCurrentScreenLayout];
+    // A next-runloop pass catches controllers that finish adding subviews in
+    // viewWillAppear without introducing a visible fixed delay.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self refreshCurrentScreenLayout];
     });
+}
+
+- (void)refreshCurrentScreenLayout {
+    if (!self.tabBarController || !self.tabBarController.view.window) return;
+    if (self.tabBarController.presentedViewController) return;
+    UIViewController *selected = self.tabBarController.selectedViewController;
+    if (!selected) return;
+    UIViewController *leaf = [self topViewControllerFrom:selected];
+    NSString *screenID = [[MUIScreenOverlayManager sharedManager] screenIDForViewController:leaf];
+    [[MUIScreenOverlayManager sharedManager] applyScreenID:screenID
+                                                 rootView:self.tabBarController.view
+                                                   tabBar:self.tabBarController.tabBar];
 }
 
 - (NSString *)identifierForController:(UIViewController *)controller

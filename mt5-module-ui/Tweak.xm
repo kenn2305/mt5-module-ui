@@ -13,9 +13,24 @@
     [[MUIRuntime sharedRuntime] observeTabBarController:self];
 }
 
+- (void)setSelectedIndex:(NSUInteger)selectedIndex {
+    %orig;
+    [[MUIRuntime sharedRuntime] refreshCurrentScreenLayout];
+}
+
+- (void)setSelectedViewController:(UIViewController *)selectedViewController {
+    %orig;
+    [[MUIRuntime sharedRuntime] refreshCurrentScreenLayout];
+}
+
 %end
 
 %hook UIViewController
+
+- (void)viewWillAppear:(BOOL)animated {
+    %orig;
+    [[MUIRuntime sharedRuntime] observeContentViewController:self];
+}
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;

@@ -162,9 +162,15 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
 
 - (void)applyScreenID:(NSString *)screenID rootView:(UIView *)rootView tabBar:(UITabBar *)tabBar {
     if (screenID.length == 0 || !rootView || !rootView.window) return;
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    [rootView layoutIfNeeded];
     [self removeOverlaysAndRestoreOriginals];
     NSArray<NSDictionary *> *elements = [[MUIScreenLayoutStore sharedStore] elementsForScreenID:screenID];
-    if (elements.count == 0) return;
+    if (elements.count == 0) {
+        [CATransaction commit];
+        return;
+    }
 
     NSArray<MUIScreenCandidate *> *candidates = [self scanCandidatesInRootView:rootView tabBar:tabBar];
     NSMutableDictionary<NSString *, MUIScreenCandidate *> *candidateByID = [NSMutableDictionary dictionary];
@@ -220,6 +226,7 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
         [host addSubview:overlay];
         if (target.sourceView) [self hideOriginalView:target.sourceView];
     }
+    [CATransaction commit];
 }
 
 @end
