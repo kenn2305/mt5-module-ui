@@ -29,10 +29,25 @@ Label: MT5 Module UI
 Suite: stable
 Version: 1.0
 Codename: ios-rootless
+Date: $(date -u "+%a, %d %b %Y %H:%M:%S UTC")
 Architectures: iphoneos-arm64
 Components: main
 Description: Rootless MT5 Module UI packages for iOS 15-16
+MD5Sum:
 EOF
+
+for metadata in Packages Packages.gz; do
+  digest="$(openssl dgst -md5 -r "$ROOT/$metadata" | awk '{print $1}')"
+  size="$(wc -c < "$ROOT/$metadata" | tr -d ' ')"
+  printf ' %s %s %s\n' "$digest" "$size" "$metadata" >> "$ROOT/Release"
+done
+
+printf 'SHA256:\n' >> "$ROOT/Release"
+for metadata in Packages Packages.gz; do
+  digest="$(openssl dgst -sha256 -r "$ROOT/$metadata" | awk '{print $1}')"
+  size="$(wc -c < "$ROOT/$metadata" | tr -d ' ')"
+  printf ' %s %s %s\n' "$digest" "$size" "$metadata" >> "$ROOT/Release"
+done
 
 cat > "$ROOT/index.html" <<EOF
 <!doctype html>
