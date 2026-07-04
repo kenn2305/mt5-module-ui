@@ -15,6 +15,15 @@
 
 %end
 
+%hook UIViewController
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    [[MUIRuntime sharedRuntime] observeContentViewController:self];
+}
+
+%end
+
 %ctor {
     @autoreleasepool {
         if (![[NSBundle mainBundle].bundleIdentifier isEqualToString:@"net.metaquotes.MetaTrader5Terminal"]) {

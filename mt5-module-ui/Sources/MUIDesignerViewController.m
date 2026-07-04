@@ -119,22 +119,35 @@
 
 #pragma mark - Table
 
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return 2; }
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return 3; }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return section == 0 ? self.modules.count : 1;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
-    return section == 0 ? @"Live MT5 modules" : @"Recovery";
+    if (section == 0) return @"Live MT5 modules";
+    if (section == 1) return @"Current screen";
+    return @"Recovery";
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
-    return section == 0 ? @"Disabled modules stay in this list and can be restored at any time." : nil;
+    if (section == 0) return @"Disabled modules stay in this list and can be restored at any time.";
+    if (section == 1) return @"Edit buttons and images inside the currently selected MT5 tab.";
+    return nil;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     if (indexPath.section == 1) {
+        UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:nil];
+        cell.textLabel.text = @"Edit icons in current screen";
+        cell.detailTextLabel.text = @"Move, resize, replace, hide or add linked icons";
+        cell.textLabel.textColor = self.view.tintColor;
+        cell.imageView.image = [UIImage systemImageNamed:@"rectangle.3.group"];
+        cell.showsReorderControl = NO;
+        return cell;
+    }
+    if (indexPath.section == 2) {
         UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:nil];
         cell.textLabel.text = @"Reset original MT5 layout";
         cell.textLabel.textColor = UIColor.systemRedColor;
@@ -191,6 +204,12 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     if (indexPath.section == 1) {
+        [self dismissViewControllerAnimated:YES completion:^{
+            [self.runtime presentScreenEditor];
+        }];
+        return;
+    }
+    if (indexPath.section == 2) {
         [self confirmReset];
         return;
     }

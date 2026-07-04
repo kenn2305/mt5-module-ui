@@ -8,6 +8,10 @@ Rootless tweak cho MetaTrader 5 trên iOS 15–16. Tool lấy trực tiếp các
 - Preview thanh tab ngay trong Designer.
 - Kéo thả để đổi thứ tự module.
 - Bật/tắt module, đổi tên và chọn icon từ Photos.
+- Quét icon/nút thật bên trong từng màn hình MT5.
+- Kéo trực tiếp để đổi vị trí, pinch để đổi kích thước, thay ảnh hoặc ẩn icon.
+- Thêm icon mới từ Photos hoặc thư viện hình Plus/Pencil/Clock/Menu/More/Chart.
+- Liên kết icon mới với hành động của nút MT5 gốc.
 - Apply trực tiếp bằng cách sắp xếp lại controller gốc của MT5.
 - Lưu JSON atomic, giữ bản backup và Reset về layout gốc.
 - Tự bỏ qua module không nhận diện được và đưa module mới của MT5 vào cuối danh sách.
@@ -18,6 +22,17 @@ Rootless tweak cho MetaTrader 5 trên iOS 15–16. Tool lấy trực tiếp các
 Sau khi cài tweak và mở MT5, nhấn giữ thanh tab phía dưới khoảng **0,8 giây**.
 
 Designer đang mở trên chính tab/controller thật của phiên MT5 hiện tại. Kéo hàng bằng tay nắm reorder, chạm vào hàng để đổi tên hoặc icon, sau đó nhấn **Apply**.
+
+## Chỉnh icon bên trong từng tab
+
+1. Mở đúng màn hình cần chỉnh, ví dụ **Giá**, **Biểu đồ**, **Giao dịch** hoặc **Lịch sử**.
+2. Nhấn giữ thanh tab dưới 0,8 giây để mở Designer.
+3. Chọn **Edit icons in current screen**.
+4. Tool khoanh các icon/nút tìm thấy ngay trên màn hình thật.
+5. Chạm icon để chọn, kéo để đổi vị trí, pinch để đổi kích thước.
+6. Dùng **Replace**, **Hide/Delete** hoặc **Add** rồi nhấn **Apply**.
+
+Icon mới mặc định là hình hiển thị. Muốn nó thực hiện một chức năng, chọn icon mới → **Link** → chạm nút MT5 gốc cần sao chép hành động. Editor lưu layout riêng theo class/title của từng màn hình và áp lại khi màn hình xuất hiện.
 
 ## Build trên GitHub
 

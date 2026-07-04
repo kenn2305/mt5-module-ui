@@ -12,6 +12,10 @@ MT5ModuleUI_FILES = \
 	Tweak.xm \
 	Sources/MUIModule.m \
 	Sources/MUIConfigStore.m \
+	Sources/MUIScreenCandidate.m \
+	Sources/MUIScreenLayoutStore.m \
+	Sources/MUIScreenOverlayManager.m \
+	Sources/MUIScreenEditorViewController.m \
 	Sources/MUIRuntime.m \
 	Sources/MUIPreviewView.m \
 	Sources/MUIDesignerViewController.m

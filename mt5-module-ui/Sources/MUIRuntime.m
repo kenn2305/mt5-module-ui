@@ -2,6 +2,8 @@
 #import "MUIConfigStore.h"
 #import "MUIConstants.h"
 #import "MUIDesignerViewController.h"
+#import "MUIScreenEditorViewController.h"
+#import "MUIScreenOverlayManager.h"
 #import "MUIModule.h"
 
 @interface MUIRuntime ()
@@ -13,6 +15,7 @@
 @property (nonatomic, assign) BOOL disableSavedLayoutForThisLaunch;
 @property (nonatomic, assign) BOOL handledCrashMarker;
 @property (nonatomic, weak) UILongPressGestureRecognizer *designerGesture;
+@property (nonatomic, assign) NSUInteger screenRefreshGeneration;
 @end
 
 @implementation MUIRuntime
@@ -41,6 +44,20 @@
     if (!tabBarController || self.applying) return;
     dispatch_async(dispatch_get_main_queue(), ^{
         [self captureAndConfigureTabBarController:tabBarController];
+    });
+}
+
+- (void)observeContentViewController:(UIViewController *)viewController {
+    if (!viewController.view.window || !self.tabBarController) return;
+    if ([NSStringFromClass(viewController.class) hasPrefix:@"MUI"]) return;
+    NSUInteger generation = ++self.screenRefreshGeneration;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (generation != self.screenRefreshGeneration || self.tabBarController.presentedViewController) return;
+        UIViewController *leaf = [self topViewControllerFrom:self.tabBarController.selectedViewController];
+        NSString *screenID = [[MUIScreenOverlayManager sharedManager] screenIDForViewController:leaf];
+        [[MUIScreenOverlayManager sharedManager] applyScreenID:screenID
+                                                     rootView:self.tabBarController.view
+                                                       tabBar:self.tabBarController.tabBar];
     });
 }
 
@@ -291,6 +308,21 @@
         navigation.modalPresentationStyle = UIModalPresentationFormSheet;
         UIViewController *presenter = [self topViewControllerFrom:self.tabBarController];
         [presenter presentViewController:navigation animated:YES completion:nil];
+    });
+}
+
+- (void)presentScreenEditor {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!self.tabBarController || self.tabBarController.presentedViewController) return;
+        UIViewController *leaf = [self topViewControllerFrom:self.tabBarController.selectedViewController];
+        NSString *screenID = [[MUIScreenOverlayManager sharedManager] screenIDForViewController:leaf];
+        [[MUIScreenOverlayManager sharedManager] removeOverlaysAndRestoreOriginals];
+        MUIScreenEditorViewController *editor = [[MUIScreenEditorViewController alloc]
+            initWithRuntime:self
+                   rootView:self.tabBarController.view
+                     tabBar:self.tabBarController.tabBar
+                   screenID:screenID];
+        [leaf presentViewController:editor animated:YES completion:nil];
     });
 }
 

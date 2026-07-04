@@ -14,6 +14,9 @@ REQUIRED = [
     "Tweak.xm",
     "Sources/MUIRuntime.m",
     "Sources/MUIDesignerViewController.m",
+    "Sources/MUIScreenEditorViewController.m",
+    "Sources/MUIScreenOverlayManager.m",
+    "Sources/MUIScreenLayoutStore.m",
     "layout/DEBIAN/postinst",
     "layout/DEBIAN/prerm",
 ]
@@ -66,5 +69,15 @@ if "PHPickerViewController" not in designer:
     fail("Photos icon picker is missing")
 if "moveRowAtIndexPath" not in designer:
     fail("drag reorder implementation is missing")
+
+screen_editor = (ROOT / "Sources/MUIScreenEditorViewController.m").read_text(encoding="utf-8")
+for feature in ("handlePanned", "handlePinched", "Choose from Photos", "linkTapped", "addCustomElement"):
+    if feature not in screen_editor:
+        fail(f"screen icon editor is missing feature: {feature}")
+
+overlay_manager = (ROOT / "Sources/MUIScreenOverlayManager.m").read_text(encoding="utf-8")
+for invariant in ("sendActionsForControlEvents", "removeOverlaysAndRestoreOriginals", "scanCandidatesInRootView"):
+    if invariant not in overlay_manager:
+        fail(f"screen overlay manager is missing invariant: {invariant}")
 
 print("Project structure and safety invariants look valid.")
