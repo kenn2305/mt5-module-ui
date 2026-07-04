@@ -14,6 +14,9 @@
 @end
 
 @implementation MUIScreenHandle
+- (CGRect)imageRectForContentRect:(CGRect)contentRect {
+    return CGRectInset(contentRect, 2.0, 2.0);
+}
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
     return CGRectContainsPoint(CGRectInset(self.bounds, -10.0, -10.0), point);
 }

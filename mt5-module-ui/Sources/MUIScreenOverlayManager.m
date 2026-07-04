@@ -21,6 +21,9 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
 @end
 
 @implementation MUIForwardingButton
+- (CGRect)imageRectForContentRect:(CGRect)contentRect {
+    return contentRect;
+}
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) [self addTarget:self action:@selector(forwardTap) forControlEvents:UIControlEventTouchUpInside];
