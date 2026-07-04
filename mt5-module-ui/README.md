@@ -47,6 +47,8 @@ Workflow `.github/workflows/mt5-module-ui.yml` chạy trên macOS để có tool
 
 Chạy workflow thủ công hoặc tạo tag dạng `mt5-module-ui-v0.1.0` để đồng thời publish APT repo lên GitHub Pages.
 
+Workflow giữ lại các `.deb` cũ trong pool khi publish để Sileo không gặp lỗi 404 do metadata/cache phiên bản trước.
+
 ## Cài qua Sileo
 
 Sau khi workflow Pages chạy thành công:

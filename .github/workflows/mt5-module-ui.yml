@@ -82,7 +82,19 @@ jobs:
           OWNER: ${{ github.repository_owner }}
         run: |
           BASE_URL="https://${OWNER}.github.io/${REPOSITORY}"
-          ./scripts/build_repo.sh "$BASE_URL" packages/*.deb
+          mkdir -p previous-packages
+          if curl -fsSL "$BASE_URL/Packages" -o /tmp/previous-Packages; then
+            while read -r package_path; do
+              test -n "$package_path" || continue
+              curl -fsSL "$BASE_URL/$package_path" \
+                -o "previous-packages/$(basename "$package_path")" || true
+            done < <(awk '/^Filename:/ {print $2}' /tmp/previous-Packages)
+          fi
+          PACKAGE_FILES=(packages/*.deb repo-assets/*.deb)
+          for previous in previous-packages/*.deb; do
+            test -e "$previous" && PACKAGE_FILES+=("$previous")
+          done
+          ./scripts/build_repo.sh "$BASE_URL" "${PACKAGE_FILES[@]}"
 
       - name: Configure GitHub Pages
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/mt5-module-ui-v')
