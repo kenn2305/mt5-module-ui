@@ -1,0 +1,15 @@
+Origin: MT5 Module UI
+Label: MT5 Module UI
+Suite: stable
+Version: 1.0
+Codename: ios-rootless
+Date: Sun, 05 Jul 2026 03:00:44 UTC
+Architectures: iphoneos-arm64
+Components: main
+Description: Rootless MT5 Module UI packages for iOS 15-16
+MD5Sum:
+ 1c197bec8c3f986e1b77dbd886450ce5 4881 Packages
+ 58a1a04fd3430e3422cf80b7fb721f22 1199 Packages.gz
+SHA256:
+ 031d57bb2af4d4c109ac0d7c07bbda2bd5c56d9eb1f1bb143e53723cf0a18bc4 4881 Packages
+ 18ff8736f57ab9a5d9847f33505cc71a82fba5b361a5eceefbb5ad50c656af77 1199 Packages.gz

@@ -1,0 +1,144 @@
+Package: com.vietanh.mt5moduleui
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Maintainer: Viet Anh
+Installed-Size: 272
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Filename: pool/com.vietanh.mt5moduleui_0.1.0_iphoneos-arm64.deb
+Size: 35056
+MD5sum: dbe5da4264b7ac21b87c9dcf481d1bcb
+SHA1: 7b02e335213bd5700dbabca2b4b00c098eb03773
+SHA256: f45495f3d88988a618d4760ed14b4bea12a26f8632f961324a4e8350ba8af834
+Section: Tweaks
+Description: Live module designer for MetaTrader 5 tabs with safe rollback.
+Tag: role::hacker
+Author: Viet Anh
+Name: MT5 Module UI
+
+Package: com.vietanh.mt5moduleui
+Version: 0.2.0
+Architecture: iphoneos-arm64
+Maintainer: Viet Anh
+Installed-Size: 372
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Filename: pool/com.vietanh.mt5moduleui_0.2.0_iphoneos-arm64.deb
+Size: 60166
+MD5sum: d3ad6bdc7109b774dc14005686b69dc3
+SHA1: f49aafc0773e0426fb915ddc6ac33d3156e2e4d5
+SHA256: 159f6b518c7d35942aeaeb7a761c87885ade2acd0947aa0aaf0bbde81fc92ef9
+Section: Tweaks
+Description: Live tab and in-screen icon layout designer for MetaTrader 5.
+Tag: role::hacker
+Author: Viet Anh
+Name: MT5 Module UI
+
+Package: com.vietanh.mt5moduleui
+Version: 0.2.1
+Architecture: iphoneos-arm64
+Maintainer: Viet Anh
+Installed-Size: 372
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Filename: pool/com.vietanh.mt5moduleui_0.2.1_iphoneos-arm64.deb
+Size: 60610
+MD5sum: b7913b433b563c9a3fddb0d3447e33b5
+SHA1: 3a048c0137266954c3a86d78a240314777a5c184
+SHA256: 18f122f3854761540b5267b98ccf08179adbcb40956c465ad3e6175b7ebe1430
+Section: Tweaks
+Description: Live tab and in-screen icon layout designer for MetaTrader 5.
+Tag: role::hacker
+Author: Viet Anh
+Name: MT5 Module UI
+
+Package: com.vietanh.mt5moduleui
+Version: 0.2.2
+Architecture: iphoneos-arm64
+Maintainer: Viet Anh
+Installed-Size: 372
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Filename: pool/com.vietanh.mt5moduleui_0.2.2_iphoneos-arm64.deb
+Size: 60952
+MD5sum: 45e1ce8c5082817baa34ba21b1a3274c
+SHA1: 8b6803b4ff3fb92d2bc6a03319b9749b4a461d1b
+SHA256: a08dfb342e5badfcdc0dc423a432baa4e9465bfc7577d45f86d7b7a087569ee8
+Section: Tweaks
+Description: Live tab and in-screen icon layout designer for MetaTrader 5.
+Tag: role::hacker
+Author: Viet Anh
+Name: MT5 Module UI
+
+Package: com.vietanh.mt5moduleui
+Version: 0.2.3
+Architecture: iphoneos-arm64
+Maintainer: Viet Anh
+Installed-Size: 388
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Filename: pool/com.vietanh.mt5moduleui_0.2.3_iphoneos-arm64.deb
+Size: 65340
+MD5sum: effc1cc121adb547842b40b9e7f5e240
+SHA1: 42922796128fcffccde5dc2727f5167914f482a4
+SHA256: 52bd51312d7f414ea5e7f1c1b7444166c30bb09c77c16f6bf8cdaa583809ed7e
+Section: Tweaks
+Description: Live tab and in-screen icon layout designer for MetaTrader 5.
+Tag: role::hacker
+Author: Viet Anh
+Name: MT5 Module UI
+
+Package: com.vietanh.mt5moduleui
+Version: 0.2.4
+Architecture: iphoneos-arm64
+Maintainer: Viet Anh
+Installed-Size: 404
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Filename: pool/com.vietanh.mt5moduleui_0.2.4_iphoneos-arm64.deb
+Size: 66796
+MD5sum: 7bb79e712e9efd474d6a8ac50347623b
+SHA1: bbc16918658cb898ff58ba9040577bea7ea053e4
+SHA256: 169f6c461d3af80772954405de414afbd5fe460993410b3efdb3461c6015e693
+Section: Tweaks
+Description: Live tab and in-screen icon layout designer for MetaTrader 5.
+Tag: role::hacker
+Author: Viet Anh
+Name: MT5 Module UI
+
+Package: com.vietanh.mt5moduleui
+Version: 0.2.5
+Architecture: iphoneos-arm64
+Maintainer: Viet Anh
+Installed-Size: 404
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Filename: pool/com.vietanh.mt5moduleui_0.2.5_iphoneos-arm64.deb
+Size: 66968
+MD5sum: 43edf63fab8288474c7ecdfa8ee7b44d
+SHA1: 9cf554fd95dcdc1c35438be3563bc240246eea18
+SHA256: efe44ad16ba1c24fc5bd6b1f131fee8fbcea503f70473667b344df8e9f57e450
+Section: Tweaks
+Description: Live tab and in-screen icon layout designer for MetaTrader 5.
+Tag: role::hacker
+Author: Viet Anh
+Name: MT5 Module UI
+
+Package: com.vietanh.mt5moduleui
+Version: 0.2.6
+Architecture: iphoneos-arm64
+Maintainer: Viet Anh
+Installed-Size: 404
+Depends: firmware (>= 15.0), firmware (<< 17.0), mobilesubstrate
+Conflicts: com.vietanh.mt5moduleui-rootful
+Filename: pool/com.vietanh.mt5moduleui_0.2.6_iphoneos-arm64.deb
+Size: 68280
+MD5sum: cfd82beb791dd71d3e415420d7efcced
+SHA1: 532c72b4f7e827b4992f0ac57c15612b303bc829
+SHA256: 8aa9e4a62b0ce506759ea695a6a2208cf1c0e03bba809e635d4f117ee969096b
+Section: Tweaks
+Description: Live tab and in-screen icon layout designer for MetaTrader 5.
+Tag: role::hacker
+Author: Viet Anh
+Name: MT5 Module UI
+
