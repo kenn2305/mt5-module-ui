@@ -41,6 +41,12 @@
 @property (nonatomic, assign) CGSize scaleBaseSize;
 @property (nonatomic, assign) BOOL linkingMode;
 @property (nonatomic, copy, nullable) NSString *photoMode;
+- (void)addCustomElementWithIconPath:(nullable NSString *)iconPath
+                              symbol:(nullable NSString *)symbol
+                         naturalSize:(CGSize)naturalSize;
+- (void)replaceSelectedWithIconPath:(nullable NSString *)iconPath
+                              symbol:(nullable NSString *)symbol
+                         naturalSize:(CGSize)naturalSize;
 @end
 
 @implementation MUIScreenEditorViewController
@@ -161,7 +167,7 @@
     title.translatesAutoresizingMaskIntoConstraints = NO;
 
     self.scaleSlider = [UISlider new];
-    self.scaleSlider.minimumValue = 0.2;
+    self.scaleSlider.minimumValue = 0.01;
     self.scaleSlider.maximumValue = 50.0;
     self.scaleSlider.value = 1.0;
     self.scaleSlider.enabled = NO;
@@ -341,10 +347,17 @@
     self.selectedHandle.layer.borderWidth = 1.0;
     self.selectedHandle.layer.borderColor = UIColor.systemBlueColor.CGColor;
     self.selectedHandle = handle;
-    self.scaleBaseSize = handle.bounds.size;
-    self.scaleSlider.value = 1.0;
+    NSMutableDictionary *element = [self mutableElementForID:handle.elementID];
+    CGFloat naturalWidth = [element[@"natural_w"] doubleValue];
+    CGFloat naturalHeight = [element[@"natural_h"] doubleValue];
+    self.scaleBaseSize = (naturalWidth > 0.0 && naturalHeight > 0.0)
+        ? CGSizeMake(naturalWidth, naturalHeight) : handle.bounds.size;
+    CGFloat currentScale = self.scaleBaseSize.width > 0.0
+        ? CGRectGetWidth(handle.bounds) / self.scaleBaseSize.width : 1.0;
+    currentScale = MIN(MAX(currentScale, self.scaleSlider.minimumValue), self.scaleSlider.maximumValue);
+    self.scaleSlider.value = currentScale;
     self.scaleSlider.enabled = YES;
-    self.scaleValueLabel.text = @"1.00×";
+    self.scaleValueLabel.text = [NSString stringWithFormat:@"%.2f×", currentScale];
     handle.layer.borderWidth = 3.0;
     handle.layer.borderColor = UIColor.systemYellowColor.CGColor;
     NSString *name = [self mutableElementForID:handle.elementID][@"name"] ?: self.candidateByID[handle.targetID].displayName ?: @"Icon";
@@ -373,6 +386,11 @@
     }
     if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
         [self materializeElementForHandle:handle];
+        CGFloat currentScale = self.scaleBaseSize.width > 0.0
+            ? CGRectGetWidth(handle.bounds) / self.scaleBaseSize.width : 1.0;
+        currentScale = MIN(MAX(currentScale, self.scaleSlider.minimumValue), self.scaleSlider.maximumValue);
+        self.scaleSlider.value = currentScale;
+        self.scaleValueLabel.text = [NSString stringWithFormat:@"%.2f×", currentScale];
         self.statusLabel.text = @"Position updated • tap Apply to save";
     }
 }
@@ -521,29 +539,43 @@
             }
             NSString *iconID = [NSString stringWithFormat:@"screen_%@", NSUUID.UUID.UUIDString];
             NSError *saveError = nil;
-            NSString *path = [[MUIConfigStore sharedStore] saveIconImage:image forModuleID:iconID error:&saveError];
+            NSString *path = [[MUIConfigStore sharedStore] saveOriginalImage:image forElementID:iconID error:&saveError];
             if (!path) {
                 weakSelf.statusLabel.text = saveError.localizedDescription ?: @"Could not save image";
                 return;
             }
-            if ([mode isEqualToString:@"add"]) [weakSelf addCustomElementWithIconPath:path symbol:nil];
-            else [weakSelf replaceSelectedWithIconPath:path symbol:nil];
+            CGFloat screenScale = MAX(UIScreen.mainScreen.scale, 1.0);
+            CGSize naturalSize = CGSizeMake((CGFloat)CGImageGetWidth(image.CGImage) / screenScale,
+                                            (CGFloat)CGImageGetHeight(image.CGImage) / screenScale);
+            if ([mode isEqualToString:@"add"]) {
+                [weakSelf addCustomElementWithIconPath:path symbol:nil naturalSize:naturalSize];
+            } else {
+                [weakSelf replaceSelectedWithIconPath:path symbol:nil naturalSize:naturalSize];
+            }
         });
     }];
 }
 
 - (void)addCustomElementWithIconPath:(NSString *)iconPath symbol:(NSString *)symbol {
+    [self addCustomElementWithIconPath:iconPath symbol:symbol naturalSize:CGSizeMake(52.0, 52.0)];
+}
+
+- (void)addCustomElementWithIconPath:(NSString *)iconPath symbol:(NSString *)symbol naturalSize:(CGSize)naturalSize {
     NSString *identifier = [@"custom:" stringByAppendingString:NSUUID.UUID.UUIDString];
     CGRect rootBounds = self.rootView.bounds;
-    CGRect frame = CGRectMake((CGRectGetWidth(rootBounds) - 52.0) / 2.0,
-                              (CGRectGetHeight(rootBounds) - 52.0) / 2.0,
-                              52.0, 52.0);
+    CGFloat naturalWidth = MAX(naturalSize.width, 8.0);
+    CGFloat naturalHeight = MAX(naturalSize.height, 8.0);
+    CGRect frame = CGRectMake((CGRectGetWidth(rootBounds) - naturalWidth) / 2.0,
+                              (CGRectGetHeight(rootBounds) - naturalHeight) / 2.0,
+                              naturalWidth, naturalHeight);
     NSMutableDictionary *element = [@{
         @"id": identifier,
         @"type": @"custom",
         @"name": @"Custom icon",
         @"hidden": @NO,
         @"template": @(symbol.length > 0),
+        @"natural_w": @(naturalWidth),
+        @"natural_h": @(naturalHeight),
         @"frame": [self normalizedFrameDictionary:frame]
     } mutableCopy];
     if (iconPath.length > 0) element[@"icon_path"] = iconPath;
@@ -558,6 +590,10 @@
 }
 
 - (void)replaceSelectedWithIconPath:(NSString *)iconPath symbol:(NSString *)symbol {
+    [self replaceSelectedWithIconPath:iconPath symbol:symbol naturalSize:CGSizeZero];
+}
+
+- (void)replaceSelectedWithIconPath:(NSString *)iconPath symbol:(NSString *)symbol naturalSize:(CGSize)naturalSize {
     if (!self.selectedHandle) return;
     [self materializeElementForHandle:self.selectedHandle];
     NSMutableDictionary *element = [self mutableElementForID:self.selectedHandle.elementID];
@@ -566,6 +602,21 @@
     if (iconPath.length > 0) element[@"icon_path"] = iconPath;
     if (symbol.length > 0) element[@"symbol"] = symbol;
     element[@"template"] = @(symbol.length > 0);
+    if (naturalSize.width > 0.0 && naturalSize.height > 0.0) {
+        element[@"natural_w"] = @(naturalSize.width);
+        element[@"natural_h"] = @(naturalSize.height);
+        self.selectedHandle.bounds = CGRectMake(0, 0, naturalSize.width, naturalSize.height);
+        self.scaleBaseSize = naturalSize;
+        self.scaleSlider.value = 1.0;
+        self.scaleValueLabel.text = @"1.00×";
+        [self materializeElementForHandle:self.selectedHandle];
+    } else if (symbol.length > 0) {
+        [element removeObjectForKey:@"natural_w"];
+        [element removeObjectForKey:@"natural_h"];
+        self.scaleBaseSize = self.selectedHandle.bounds.size;
+        self.scaleSlider.value = 1.0;
+        self.scaleValueLabel.text = @"1.00×";
+    }
     UIImage *image = [self imageForElement:element fallback:self.candidateByID[self.selectedHandle.targetID].image];
     [self.selectedHandle setImage:image forState:UIControlStateNormal];
     self.statusLabel.text = @"Icon replaced. Tap Apply to save.";

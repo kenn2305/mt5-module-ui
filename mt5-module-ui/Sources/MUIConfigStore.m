@@ -176,6 +176,27 @@ static NSString * const MUIConfigErrorDomain = @"com.vietanh.mt5moduleui.config"
     return [@"icons" stringByAppendingPathComponent:fileName];
 }
 
+- (NSString *)saveOriginalImage:(UIImage *)image forElementID:(NSString *)elementID error:(NSError **)error {
+    if (![self ensureDirectories:error]) return nil;
+    if (!image || elementID.length == 0 || !image.CGImage) return nil;
+
+    // Screen overlays may be enlarged far beyond tab-icon size. Preserve the
+    // source pixels instead of passing through the 90x90 tab normalization.
+    NSData *png = UIImagePNGRepresentation(image);
+    if (!png || png.length > 80 * 1024 * 1024) {
+        if (error) *error = [NSError errorWithDomain:MUIConfigErrorDomain code:8
+                                            userInfo:@{NSLocalizedDescriptionKey: @"The original image is invalid or larger than 80 MB."}];
+        return nil;
+    }
+
+    NSCharacterSet *invalid = [[NSCharacterSet alphanumericCharacterSet] invertedSet];
+    NSString *safeID = [[elementID componentsSeparatedByCharactersInSet:invalid] componentsJoinedByString:@"_"];
+    NSString *fileName = [NSString stringWithFormat:@"%@_original.png", safeID];
+    NSURL *url = [self.iconsDirectoryURL URLByAppendingPathComponent:fileName];
+    if (![png writeToURL:url options:NSDataWritingAtomic error:error]) return nil;
+    return [@"icons" stringByAppendingPathComponent:fileName];
+}
+
 - (UIImage *)imageAtRelativePath:(NSString *)relativePath {
     if (relativePath.length == 0 || [relativePath containsString:@".."] || [relativePath hasPrefix:@"/"]) return nil;
     NSURL *url = [self.baseDirectoryURL URLByAppendingPathComponent:relativePath];

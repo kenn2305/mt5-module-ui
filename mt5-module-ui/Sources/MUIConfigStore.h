@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)restoreBackupWithError:(NSError **)error;
 - (BOOL)resetWithError:(NSError **)error;
 - (nullable NSString *)saveIconImage:(UIImage *)image forModuleID:(NSString *)moduleID error:(NSError **)error;
+- (nullable NSString *)saveOriginalImage:(UIImage *)image forElementID:(NSString *)elementID error:(NSError **)error;
 - (nullable UIImage *)imageAtRelativePath:(NSString *)relativePath;
 
 @end
