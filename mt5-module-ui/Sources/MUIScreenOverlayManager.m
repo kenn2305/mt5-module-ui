@@ -195,6 +195,23 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
     return custom ?: symbolImage ?: fallback;
 }
 
+- (NSString *)textForElement:(NSDictionary *)element {
+    NSString *text = [element[@"text"] isKindOfClass:NSString.class] ? element[@"text"] : nil;
+    return text.length > 0 ? text : @"Text";
+}
+
+- (void)styleTextLabel:(UILabel *)label inFrame:(CGRect)frame {
+    CGFloat fontSize = MIN(MAX(CGRectGetHeight(frame) * 0.62, 8.0), 420.0);
+    label.font = [UIFont systemFontOfSize:fontSize weight:UIFontWeightSemibold];
+    label.textColor = UIColor.whiteColor;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.numberOfLines = 0;
+    label.adjustsFontSizeToFitWidth = YES;
+    label.minimumScaleFactor = 0.25;
+    label.shadowColor = [UIColor colorWithWhite:0.0 alpha:0.75];
+    label.shadowOffset = CGSizeMake(0.0, 1.0);
+}
+
 - (UIViewController *)topViewControllerFrom:(UIViewController *)controller {
     if (controller.presentedViewController) return [self topViewControllerFrom:controller.presentedViewController];
     if ([controller isKindOfClass:UINavigationController.class]) {
@@ -274,6 +291,15 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
 
         CGRect frame = [self frameFromDictionary:element[@"frame"] inBounds:rootView.bounds];
         if (CGRectGetWidth(frame) < 4.0 || CGRectGetHeight(frame) < 4.0) continue;
+        if ([type isEqualToString:@"text"]) {
+            UILabel *label = [[UILabel alloc] initWithFrame:frame];
+            label.text = [self textForElement:element];
+            label.backgroundColor = UIColor.clearColor;
+            label.userInteractionEnabled = NO;
+            [self styleTextLabel:label inFrame:frame];
+            [host addSubview:label];
+            continue;
+        }
         UIImage *image = [self imageForElement:element fallback:target.image];
         if (!image) continue;
 

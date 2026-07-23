@@ -44,6 +44,19 @@ Mỗi tab giữ overlay trong chính cây view của tab đó. Vì icon custom v
 
 Icon mới mặc định là hình hiển thị. Muốn nó thực hiện một chức năng, chọn icon mới → **Link** → chạm nút MT5 gốc cần sao chép hành động. Editor lưu layout riêng theo class/title của từng màn hình và áp lại khi màn hình xuất hiện.
 
+## Text overlay
+
+Từ bản 0.2.7, screen editor có thêm module chữ:
+
+1. Mở đúng tab/màn hình cần chèn chữ.
+2. Nhấn giữ tab bar để mở Designer, chọn **Edit icons in current screen**.
+3. Bấm **Add** → **Add text**, nhập nội dung.
+4. Chạm vào text để chọn, kéo để đổi vị trí, pinch hoặc dùng thanh **Scale** để đổi kích thước.
+5. Khi đang chọn text, bấm **Replace** để sửa nội dung chữ.
+6. Bấm **Hide/Delete** để xóa text, bấm **Apply** để lưu vào đúng tab hiện tại.
+
+Text được render bằng label/vector thật, không phải ảnh bitmap, nên khi scale lớn vẫn nét hơn ảnh bị phóng.
+
 ## Build trên GitHub
 
 Workflow `.github/workflows/mt5-module-ui.yml` chạy trên macOS để có toolchain arm64e phù hợp:

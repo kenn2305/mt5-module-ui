@@ -47,6 +47,12 @@
 - (void)replaceSelectedWithIconPath:(nullable NSString *)iconPath
                               symbol:(nullable NSString *)symbol
                          naturalSize:(CGSize)naturalSize;
+- (void)addTextElementWithText:(NSString *)text;
+- (void)editSelectedText;
+- (void)presentTextEditorWithExistingElement:(nullable NSMutableDictionary *)existingElement;
+- (void)createTextHandleWithElementID:(NSString *)elementID
+                                frame:(CGRect)frame
+                                 text:(NSString *)text;
 @end
 
 @implementation MUIScreenEditorViewController
@@ -83,7 +89,7 @@
     self.statusLabel.numberOfLines = 2;
     self.statusLabel.layer.cornerRadius = 10.0;
     self.statusLabel.clipsToBounds = YES;
-    self.statusLabel.text = @"Select an icon • drag anywhere to move relatively";
+    self.statusLabel.text = @"Select an icon/text - drag anywhere to move relatively";
     [self.view addSubview:self.statusLabel];
 
     [self buildToolbar];
@@ -267,6 +273,22 @@
     return custom ?: symbolImage ?: fallback ?: [UIImage systemImageNamed:@"square.dashed"];
 }
 
+- (NSString *)textForElement:(NSDictionary *)element {
+    NSString *text = [element[@"text"] isKindOfClass:NSString.class] ? element[@"text"] : nil;
+    return text.length > 0 ? text : @"Text";
+}
+
+- (void)styleTextHandle:(MUIScreenHandle *)handle {
+    CGFloat fontSize = MIN(MAX(CGRectGetHeight(handle.bounds) * 0.62, 8.0), 420.0);
+    handle.titleLabel.font = [UIFont systemFontOfSize:fontSize weight:UIFontWeightSemibold];
+    handle.titleLabel.numberOfLines = 0;
+    handle.titleLabel.textAlignment = NSTextAlignmentCenter;
+    handle.titleLabel.adjustsFontSizeToFitWidth = YES;
+    handle.titleLabel.minimumScaleFactor = 0.25;
+    handle.contentHorizontalAlignment = UIControlContentHorizontalAlignmentCenter;
+    handle.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
+}
+
 - (void)reloadCanvas {
     for (MUIScreenHandle *handle in self.handleByElementID.allValues) [handle removeFromSuperview];
     [self.handleByElementID removeAllObjects];
@@ -298,15 +320,21 @@
     }
 
     for (NSDictionary *element in self.elements) {
-        if (![element[@"type"] isEqualToString:@"custom"]) continue;
+        if (![element[@"type"] isEqualToString:@"custom"] && ![element[@"type"] isEqualToString:@"text"]) continue;
         CGRect rootFrame = [self rootFrameFromDictionary:element[@"frame"]];
-        [self createHandleWithElementID:element[@"id"]
-                               targetID:nil
-                                   type:@"custom"
-                                  frame:[self editorFrameForRootFrame:rootFrame]
-                                  image:[self imageForElement:element fallback:nil]
-                             actionable:NO
-                                 hidden:NO];
+        if ([element[@"type"] isEqualToString:@"text"]) {
+            [self createTextHandleWithElementID:element[@"id"]
+                                          frame:[self editorFrameForRootFrame:rootFrame]
+                                           text:[self textForElement:element]];
+        } else {
+            [self createHandleWithElementID:element[@"id"]
+                                   targetID:nil
+                                       type:@"custom"
+                                      frame:[self editorFrameForRootFrame:rootFrame]
+                                      image:[self imageForElement:element fallback:nil]
+                                 actionable:NO
+                                     hidden:NO];
+        }
     }
     self.statusLabel.text = [NSString stringWithFormat:@"%lu icons found • tap, drag, pinch to edit", (unsigned long)self.candidates.count];
 }
@@ -343,6 +371,35 @@
     self.handleByElementID[elementID] = handle;
 }
 
+- (void)createTextHandleWithElementID:(NSString *)elementID
+                                frame:(CGRect)frame
+                                 text:(NSString *)text {
+    if (elementID.length == 0 || CGRectIsEmpty(frame)) return;
+    MUIScreenHandle *handle = [[MUIScreenHandle alloc] initWithFrame:frame];
+    handle.elementID = elementID;
+    handle.targetID = nil;
+    handle.elementType = @"text";
+    handle.actionableTarget = NO;
+    [handle setTitle:text forState:UIControlStateNormal];
+    [handle setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    handle.backgroundColor = [UIColor colorWithRed:1.0 green:0.75 blue:0.15 alpha:0.14];
+    handle.layer.borderColor = UIColor.systemYellowColor.CGColor;
+    handle.layer.borderWidth = 1.0;
+    handle.layer.cornerRadius = 6.0;
+    [self styleTextHandle:handle];
+    [handle addTarget:self action:@selector(handleTapped:) forControlEvents:UIControlEventTouchUpInside];
+
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanned:)];
+    pan.delegate = self;
+    [handle addGestureRecognizer:pan];
+    UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinched:)];
+    pinch.delegate = self;
+    [handle addGestureRecognizer:pinch];
+
+    [self.view insertSubview:handle belowSubview:self.toolbar];
+    self.handleByElementID[elementID] = handle;
+}
+
 - (void)selectHandle:(MUIScreenHandle *)handle {
     self.selectedHandle.layer.borderWidth = 1.0;
     self.selectedHandle.layer.borderColor = UIColor.systemBlueColor.CGColor;
@@ -360,7 +417,7 @@
     self.scaleValueLabel.text = [NSString stringWithFormat:@"%.2f×", currentScale];
     handle.layer.borderWidth = 3.0;
     handle.layer.borderColor = UIColor.systemYellowColor.CGColor;
-    NSString *name = [self mutableElementForID:handle.elementID][@"name"] ?: self.candidateByID[handle.targetID].displayName ?: @"Icon";
+    NSString *name = [self mutableElementForID:handle.elementID][@"name"] ?: self.candidateByID[handle.targetID].displayName ?: @"Icon/Text";
     self.statusLabel.text = [NSString stringWithFormat:@"Selected: %@", name];
 }
 
@@ -371,6 +428,7 @@
     CGFloat width = MIN(MAX(self.scaleBaseSize.width * scale, 8.0), 20000.0);
     CGFloat height = MIN(MAX(self.scaleBaseSize.height * scale, 8.0), 20000.0);
     handle.bounds = CGRectMake(0, 0, width, height);
+    if ([handle.elementType isEqualToString:@"text"]) [self styleTextHandle:handle];
     self.scaleValueLabel.text = [NSString stringWithFormat:@"%.2f×", scale];
     [self materializeElementForHandle:handle];
 }
@@ -439,6 +497,7 @@
     CGFloat width = MIN(MAX(CGRectGetWidth(handle.bounds) * gesture.scale, 8.0), 20000.0);
     CGFloat height = MIN(MAX(CGRectGetHeight(handle.bounds) * gesture.scale, 8.0), 20000.0);
     handle.bounds = CGRectMake(0, 0, width, height);
+    if ([handle.elementType isEqualToString:@"text"]) [self styleTextHandle:handle];
     gesture.scale = 1.0;
     if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
         [self materializeElementForHandle:handle];
@@ -468,12 +527,29 @@
 }
 
 - (void)addTapped {
-    [self presentIconSourceForMode:@"add"];
+    UIAlertController *sheet = [UIAlertController alertControllerWithTitle:@"Add module"
+                                                                   message:@"Choose what to add to this screen"
+                                                            preferredStyle:UIAlertControllerStyleActionSheet];
+    __weak typeof(self) weakSelf = self;
+    [sheet addAction:[UIAlertAction actionWithTitle:@"Add icon/photo" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [weakSelf presentIconSourceForMode:@"add"];
+    }]];
+    [sheet addAction:[UIAlertAction actionWithTitle:@"Add text" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [weakSelf presentTextEditorWithExistingElement:nil];
+    }]];
+    [sheet addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    sheet.popoverPresentationController.sourceView = self.toolbar;
+    sheet.popoverPresentationController.sourceRect = self.toolbar.bounds;
+    [self presentViewController:sheet animated:YES completion:nil];
 }
 
 - (void)replaceTapped {
     if (!self.selectedHandle) {
-        self.statusLabel.text = @"Select an icon before replacing it";
+        self.statusLabel.text = @"Select an icon/text before editing it";
+        return;
+    }
+    if ([self.selectedHandle.elementType isEqualToString:@"text"]) {
+        [self editSelectedText];
         return;
     }
     [self presentIconSourceForMode:@"replace"];
@@ -589,6 +665,76 @@
     self.statusLabel.text = @"New icon added. Drag and pinch, then optionally Link an action.";
 }
 
+- (CGSize)naturalSizeForText:(NSString *)text {
+    UIFont *font = [UIFont systemFontOfSize:32.0 weight:UIFontWeightSemibold];
+    CGRect rect = [text boundingRectWithSize:CGSizeMake(900.0, CGFLOAT_MAX)
+                                     options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
+                                  attributes:@{NSFontAttributeName: font}
+                                     context:nil];
+    return CGSizeMake(MAX(ceil(rect.size.width) + 24.0, 64.0),
+                      MAX(ceil(rect.size.height) + 16.0, 44.0));
+}
+
+- (void)presentTextEditorWithExistingElement:(NSMutableDictionary *)existingElement {
+    BOOL editing = existingElement != nil;
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:editing ? @"Edit text" : @"Add text"
+                                                                   message:@"Enter text to show on this MT5 screen"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+        textField.placeholder = @"Text";
+        textField.text = editing ? [self textForElement:existingElement] : @"New text";
+    }];
+    __weak typeof(self) weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:(editing ? @"Save" : @"Add") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        NSString *text = alert.textFields.firstObject.text;
+        if (text.length == 0) text = @"Text";
+        if (editing) {
+            existingElement[@"text"] = text;
+            existingElement[@"name"] = text;
+            [weakSelf.selectedHandle setTitle:text forState:UIControlStateNormal];
+            [weakSelf styleTextHandle:weakSelf.selectedHandle];
+            [weakSelf materializeElementForHandle:weakSelf.selectedHandle];
+            weakSelf.statusLabel.text = @"Text updated. Drag, scale, then Apply.";
+        } else {
+            [weakSelf addTextElementWithText:text];
+        }
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)addTextElementWithText:(NSString *)text {
+    NSString *identifier = [@"text:" stringByAppendingString:NSUUID.UUID.UUIDString];
+    CGRect rootBounds = self.rootView.bounds;
+    CGSize naturalSize = [self naturalSizeForText:text];
+    CGRect frame = CGRectMake((CGRectGetWidth(rootBounds) - naturalSize.width) / 2.0,
+                              (CGRectGetHeight(rootBounds) - naturalSize.height) / 2.0,
+                              naturalSize.width,
+                              naturalSize.height);
+    NSMutableDictionary *element = [@{
+        @"id": identifier,
+        @"type": @"text",
+        @"name": text,
+        @"text": text,
+        @"hidden": @NO,
+        @"natural_w": @(naturalSize.width),
+        @"natural_h": @(naturalSize.height),
+        @"frame": [self normalizedFrameDictionary:frame]
+    } mutableCopy];
+    [self.elements addObject:element];
+    [self createTextHandleWithElementID:identifier
+                                  frame:[self editorFrameForRootFrame:frame]
+                                   text:text];
+    [self selectHandle:self.handleByElementID[identifier]];
+    self.statusLabel.text = @"New text added. Drag, scale, then Apply.";
+}
+
+- (void)editSelectedText {
+    NSMutableDictionary *element = [self mutableElementForID:self.selectedHandle.elementID];
+    if (![element[@"type"] isEqualToString:@"text"]) return;
+    [self presentTextEditorWithExistingElement:element];
+}
+
 - (void)replaceSelectedWithIconPath:(NSString *)iconPath symbol:(NSString *)symbol {
     [self replaceSelectedWithIconPath:iconPath symbol:symbol naturalSize:CGSizeZero];
 }
@@ -627,12 +773,12 @@
         self.statusLabel.text = @"Select an icon first";
         return;
     }
-    if ([self.selectedHandle.elementType isEqualToString:@"custom"]) {
+    if ([self.selectedHandle.elementType isEqualToString:@"custom"] || [self.selectedHandle.elementType isEqualToString:@"text"]) {
         NSMutableDictionary *element = [self mutableElementForID:self.selectedHandle.elementID];
         [self.elements removeObject:element];
         [self.handleByElementID removeObjectForKey:self.selectedHandle.elementID];
         [self.selectedHandle removeFromSuperview];
-        self.statusLabel.text = @"Custom icon deleted";
+        self.statusLabel.text = @"Custom module deleted";
         self.selectedHandle = nil;
         self.scaleSlider.enabled = NO;
         return;
@@ -668,7 +814,7 @@
 
 - (void)applyTapped {
     for (MUIScreenHandle *handle in self.handleByElementID.allValues) {
-        if ([handle.elementType isEqualToString:@"custom"] || [self mutableElementForID:handle.elementID]) {
+        if ([handle.elementType isEqualToString:@"custom"] || [handle.elementType isEqualToString:@"text"] || [self mutableElementForID:handle.elementID]) {
             [self materializeElementForHandle:handle];
         }
     }
