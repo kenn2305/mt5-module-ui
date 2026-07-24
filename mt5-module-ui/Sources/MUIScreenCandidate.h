@@ -6,7 +6,11 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, weak, nullable) UIView *sourceView;
 @property (nonatomic, copy) NSString *identifier;
 @property (nonatomic, copy) NSString *displayName;
+@property (nonatomic, copy) NSString *contentType;
 @property (nonatomic, strong, nullable) UIImage *image;
+@property (nonatomic, copy, nullable) NSString *text;
+@property (nonatomic, strong, nullable) UIColor *textColor;
+@property (nonatomic, strong, nullable) UIFont *font;
 @property (nonatomic, assign) CGRect frameInRoot;
 @property (nonatomic, assign, getter=isActionable) BOOL actionable;
 @end

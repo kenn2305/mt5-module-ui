@@ -46,14 +46,15 @@ Icon mới mặc định là hình hiển thị. Muốn nó thực hiện một 
 
 ## Text overlay
 
-Từ bản 0.2.7, screen editor có thêm module chữ:
+Từ bản 0.2.8, screen editor có thể chỉnh cả chữ gốc đang hiển thị trong MT5 và thêm chữ mới:
 
 1. Mở đúng tab/màn hình cần chèn chữ.
 2. Nhấn giữ tab bar để mở Designer, chọn **Edit icons in current screen**.
-3. Bấm **Add** → **Add text**, nhập nội dung.
+3. Text/label gốc của MT5 sẽ được khoanh giống icon nếu scanner nhận diện được.
 4. Chạm vào text để chọn, kéo để đổi vị trí, pinch hoặc dùng thanh **Scale** để đổi kích thước.
 5. Khi đang chọn text, bấm **Replace** để sửa nội dung chữ.
-6. Bấm **Hide/Delete** để xóa text, bấm **Apply** để lưu vào đúng tab hiện tại.
+6. Bấm **Add** → **Add text** để thêm chữ mới nếu cần.
+7. Bấm **Hide/Delete** để ẩn text gốc hoặc xóa text tự thêm, bấm **Apply** để lưu vào đúng tab hiện tại.
 
 Text được render bằng label/vector thật, không phải ảnh bitmap, nên khi scale lớn vẫn nét hơn ảnh bị phóng.
 

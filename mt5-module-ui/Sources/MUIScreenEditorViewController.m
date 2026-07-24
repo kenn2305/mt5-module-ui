@@ -53,6 +53,14 @@
 - (void)createTextHandleWithElementID:(NSString *)elementID
                                 frame:(CGRect)frame
                                  text:(NSString *)text;
+- (void)createTextHandleWithElementID:(NSString *)elementID
+                              targetID:(nullable NSString *)targetID
+                                  type:(NSString *)type
+                                 frame:(CGRect)frame
+                                  text:(NSString *)text
+                            textColor:(nullable UIColor *)textColor
+                                  font:(nullable UIFont *)font
+                                hidden:(BOOL)hidden;
 @end
 
 @implementation MUIScreenEditorViewController
@@ -226,12 +234,18 @@
     NSMutableDictionary *element = [@{
         @"id": [@"existing:" stringByAppendingString:candidate.identifier],
         @"type": @"existing",
+        @"content_type": candidate.contentType ?: @"icon",
         @"target_id": candidate.identifier,
-        @"name": candidate.displayName ?: @"Icon",
+        @"name": candidate.displayName ?: @"Icon/Text",
         @"hidden": @NO,
         @"template": @NO,
         @"frame": [self normalizedFrameDictionary:candidate.frameInRoot]
     } mutableCopy];
+    if ([candidate.contentType isEqualToString:@"text"] && candidate.text.length > 0) {
+        element[@"text"] = candidate.text;
+        element[@"natural_w"] = @(MAX(CGRectGetWidth(candidate.frameInRoot), 8.0));
+        element[@"natural_h"] = @(MAX(CGRectGetHeight(candidate.frameInRoot), 8.0));
+    }
     [self.elements addObject:element];
     return element;
 }
@@ -278,6 +292,14 @@
     return text.length > 0 ? text : @"Text";
 }
 
+- (BOOL)handleRepresentsText:(MUIScreenHandle *)handle {
+    if ([handle.elementType isEqualToString:@"text"]) return YES;
+    NSMutableDictionary *element = [self mutableElementForID:handle.elementID];
+    if ([element[@"content_type"] isEqualToString:@"text"]) return YES;
+    MUIScreenCandidate *candidate = self.candidateByID[handle.targetID];
+    return [candidate.contentType isEqualToString:@"text"];
+}
+
 - (void)styleTextHandle:(MUIScreenHandle *)handle {
     CGFloat fontSize = MIN(MAX(CGRectGetHeight(handle.bounds) * 0.62, 8.0), 420.0);
     handle.titleLabel.font = [UIFont systemFontOfSize:fontSize weight:UIFontWeightSemibold];
@@ -310,13 +332,24 @@
         NSMutableDictionary *element = [self elementForCandidate:candidate create:NO];
         CGRect rootFrame = element ? [self rootFrameFromDictionary:element[@"frame"]] : candidate.frameInRoot;
         NSString *elementID = element[@"id"] ?: [@"candidate:" stringByAppendingString:candidate.identifier];
-        [self createHandleWithElementID:elementID
-                               targetID:candidate.identifier
-                                   type:@"existing"
-                                  frame:[self editorFrameForRootFrame:rootFrame]
-                                  image:[self imageForElement:element fallback:candidate.image]
-                             actionable:candidate.actionable
-                                 hidden:[element[@"hidden"] boolValue]];
+        if ([candidate.contentType isEqualToString:@"text"] || [element[@"content_type"] isEqualToString:@"text"]) {
+            [self createTextHandleWithElementID:elementID
+                                       targetID:candidate.identifier
+                                           type:@"existing"
+                                          frame:[self editorFrameForRootFrame:rootFrame]
+                                           text:[self textForElement:element ?: @{@"text": candidate.text ?: candidate.displayName ?: @"Text"}]
+                                      textColor:candidate.textColor
+                                           font:candidate.font
+                                         hidden:[element[@"hidden"] boolValue]];
+        } else {
+            [self createHandleWithElementID:elementID
+                                   targetID:candidate.identifier
+                                       type:@"existing"
+                                      frame:[self editorFrameForRootFrame:rootFrame]
+                                      image:[self imageForElement:element fallback:candidate.image]
+                                 actionable:candidate.actionable
+                                     hidden:[element[@"hidden"] boolValue]];
+        }
     }
 
     for (NSDictionary *element in self.elements) {
@@ -374,18 +407,37 @@
 - (void)createTextHandleWithElementID:(NSString *)elementID
                                 frame:(CGRect)frame
                                  text:(NSString *)text {
+    [self createTextHandleWithElementID:elementID
+                               targetID:nil
+                                   type:@"text"
+                                  frame:frame
+                                   text:text
+                              textColor:UIColor.whiteColor
+                                   font:nil
+                                 hidden:NO];
+}
+
+- (void)createTextHandleWithElementID:(NSString *)elementID
+                              targetID:(NSString *)targetID
+                                  type:(NSString *)type
+                                 frame:(CGRect)frame
+                                  text:(NSString *)text
+                            textColor:(UIColor *)textColor
+                                  font:(UIFont *)font
+                                hidden:(BOOL)hidden {
     if (elementID.length == 0 || CGRectIsEmpty(frame)) return;
     MUIScreenHandle *handle = [[MUIScreenHandle alloc] initWithFrame:frame];
     handle.elementID = elementID;
-    handle.targetID = nil;
-    handle.elementType = @"text";
+    handle.targetID = targetID;
+    handle.elementType = type;
     handle.actionableTarget = NO;
     [handle setTitle:text forState:UIControlStateNormal];
-    [handle setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    handle.backgroundColor = [UIColor colorWithRed:1.0 green:0.75 blue:0.15 alpha:0.14];
-    handle.layer.borderColor = UIColor.systemYellowColor.CGColor;
+    [handle setTitleColor:textColor ?: UIColor.whiteColor forState:UIControlStateNormal];
+    handle.backgroundColor = [UIColor colorWithRed:1.0 green:0.75 blue:0.15 alpha:hidden ? 0.28 : 0.14];
+    handle.layer.borderColor = (hidden ? UIColor.systemRedColor : UIColor.systemYellowColor).CGColor;
     handle.layer.borderWidth = 1.0;
     handle.layer.cornerRadius = 6.0;
+    if (font) handle.titleLabel.font = font;
     [self styleTextHandle:handle];
     [handle addTarget:self action:@selector(handleTapped:) forControlEvents:UIControlEventTouchUpInside];
 
@@ -428,7 +480,7 @@
     CGFloat width = MIN(MAX(self.scaleBaseSize.width * scale, 8.0), 20000.0);
     CGFloat height = MIN(MAX(self.scaleBaseSize.height * scale, 8.0), 20000.0);
     handle.bounds = CGRectMake(0, 0, width, height);
-    if ([handle.elementType isEqualToString:@"text"]) [self styleTextHandle:handle];
+    if ([self handleRepresentsText:handle]) [self styleTextHandle:handle];
     self.scaleValueLabel.text = [NSString stringWithFormat:@"%.2f×", scale];
     [self materializeElementForHandle:handle];
 }
@@ -497,7 +549,7 @@
     CGFloat width = MIN(MAX(CGRectGetWidth(handle.bounds) * gesture.scale, 8.0), 20000.0);
     CGFloat height = MIN(MAX(CGRectGetHeight(handle.bounds) * gesture.scale, 8.0), 20000.0);
     handle.bounds = CGRectMake(0, 0, width, height);
-    if ([handle.elementType isEqualToString:@"text"]) [self styleTextHandle:handle];
+    if ([self handleRepresentsText:handle]) [self styleTextHandle:handle];
     gesture.scale = 1.0;
     if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
         [self materializeElementForHandle:handle];
@@ -548,7 +600,8 @@
         self.statusLabel.text = @"Select an icon/text before editing it";
         return;
     }
-    if ([self.selectedHandle.elementType isEqualToString:@"text"]) {
+    if ([self handleRepresentsText:self.selectedHandle]) {
+        [self materializeElementForHandle:self.selectedHandle];
         [self editSelectedText];
         return;
     }
@@ -731,7 +784,7 @@
 
 - (void)editSelectedText {
     NSMutableDictionary *element = [self mutableElementForID:self.selectedHandle.elementID];
-    if (![element[@"type"] isEqualToString:@"text"]) return;
+    if (![element[@"type"] isEqualToString:@"text"] && ![element[@"content_type"] isEqualToString:@"text"]) return;
     [self presentTextEditorWithExistingElement:element];
 }
 

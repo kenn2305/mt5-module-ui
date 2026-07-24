@@ -7,6 +7,7 @@
     if (self) {
         _identifier = @"";
         _displayName = @"Icon";
+        _contentType = @"icon";
         _frameInRoot = CGRectZero;
     }
     return self;
