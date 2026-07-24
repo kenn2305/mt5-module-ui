@@ -245,6 +245,103 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
     label.shadowOffset = CGSizeMake(0.0, 1.0);
 }
 
+- (UIControl *)nearestControlForView:(UIView *)view {
+    UIView *cursor = view;
+    while (cursor) {
+        if ([cursor isKindOfClass:UIControl.class]) return (UIControl *)cursor;
+        cursor = cursor.superview;
+    }
+    return nil;
+}
+
+- (UITableViewCell *)nearestTableCellForView:(UIView *)view {
+    UIView *cursor = view;
+    while (cursor) {
+        if ([cursor isKindOfClass:UITableViewCell.class]) return (UITableViewCell *)cursor;
+        cursor = cursor.superview;
+    }
+    return nil;
+}
+
+- (UITableView *)nearestTableViewForView:(UIView *)view {
+    UIView *cursor = view;
+    while (cursor) {
+        if ([cursor isKindOfClass:UITableView.class]) return (UITableView *)cursor;
+        cursor = cursor.superview;
+    }
+    return nil;
+}
+
+- (UICollectionViewCell *)nearestCollectionCellForView:(UIView *)view {
+    UIView *cursor = view;
+    while (cursor) {
+        if ([cursor isKindOfClass:UICollectionViewCell.class]) return (UICollectionViewCell *)cursor;
+        cursor = cursor.superview;
+    }
+    return nil;
+}
+
+- (UICollectionView *)nearestCollectionViewForView:(UIView *)view {
+    UIView *cursor = view;
+    while (cursor) {
+        if ([cursor isKindOfClass:UICollectionView.class]) return (UICollectionView *)cursor;
+        cursor = cursor.superview;
+    }
+    return nil;
+}
+
+- (BOOL)triggerOriginalActionForSourceView:(UIView *)sourceView {
+    UIControl *control = [self nearestControlForView:sourceView];
+    if (control) {
+        [control sendActionsForControlEvents:UIControlEventTouchUpInside];
+        return YES;
+    }
+
+    UITableViewCell *tableCell = [self nearestTableCellForView:sourceView];
+    UITableView *tableView = tableCell ? [self nearestTableViewForView:tableCell] : nil;
+    NSIndexPath *tableIndexPath = tableCell ? [tableView indexPathForCell:tableCell] : nil;
+    if (tableView && tableIndexPath) {
+        [tableView selectRowAtIndexPath:tableIndexPath animated:NO scrollPosition:UITableViewScrollPositionNone];
+        id<UITableViewDelegate> delegate = tableView.delegate;
+        if ([delegate respondsToSelector:@selector(tableView:didSelectRowAtIndexPath:)]) {
+            [delegate tableView:tableView didSelectRowAtIndexPath:tableIndexPath];
+            return YES;
+        }
+    }
+
+    UICollectionViewCell *collectionCell = [self nearestCollectionCellForView:sourceView];
+    UICollectionView *collectionView = collectionCell ? [self nearestCollectionViewForView:collectionCell] : nil;
+    NSIndexPath *collectionIndexPath = collectionCell ? [collectionView indexPathForCell:collectionCell] : nil;
+    if (collectionView && collectionIndexPath) {
+        [collectionView selectItemAtIndexPath:collectionIndexPath animated:NO scrollPosition:UICollectionViewScrollPositionNone];
+        id<UICollectionViewDelegate> delegate = collectionView.delegate;
+        if ([delegate respondsToSelector:@selector(collectionView:didSelectItemAtIndexPath:)]) {
+            [delegate collectionView:collectionView didSelectItemAtIndexPath:collectionIndexPath];
+            return YES;
+        }
+    }
+
+    return NO;
+}
+
+- (BOOL)canTriggerOriginalActionForSourceView:(UIView *)sourceView {
+    if ([self nearestControlForView:sourceView]) return YES;
+
+    UITableViewCell *tableCell = [self nearestTableCellForView:sourceView];
+    UITableView *tableView = tableCell ? [self nearestTableViewForView:tableCell] : nil;
+    NSIndexPath *tableIndexPath = tableCell ? [tableView indexPathForCell:tableCell] : nil;
+    if (tableView && tableIndexPath &&
+        [tableView.delegate respondsToSelector:@selector(tableView:didSelectRowAtIndexPath:)]) return YES;
+
+    UICollectionViewCell *collectionCell = [self nearestCollectionCellForView:sourceView];
+    UICollectionView *collectionView = collectionCell ? [self nearestCollectionViewForView:collectionCell] : nil;
+    NSIndexPath *collectionIndexPath = collectionCell ? [collectionView indexPathForCell:collectionCell] : nil;
+    if (collectionView && collectionIndexPath &&
+        [collectionView.delegate respondsToSelector:@selector(collectionView:didSelectItemAtIndexPath:)]) return YES;
+
+    return NO;
+}
+
 - (UIViewController *)topViewControllerFrom:(UIViewController *)controller {
     if (controller.presentedViewController) return [self topViewControllerFrom:controller.presentedViewController];
     if ([controller isKindOfClass:UINavigationController.class]) {
@@ -328,18 +425,50 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
             [element[@"content_type"] isEqualToString:@"text"] ||
             [target.contentType isEqualToString:@"text"];
         if (isTextElement) {
-            UILabel *label = [[UILabel alloc] initWithFrame:frame];
             NSString *text = [element[@"text"] isKindOfClass:NSString.class] ? element[@"text"] : target.text;
-            label.text = text.length > 0 ? text : [self textForElement:element];
-            label.backgroundColor = UIColor.clearColor;
-            label.userInteractionEnabled = NO;
-            [self styleTextLabel:label inFrame:frame];
-            if (target.textColor) label.textColor = target.textColor;
-            if (target.font) {
-                CGFloat multiplier = CGRectGetHeight(frame) / MAX(CGRectGetHeight(target.frameInRoot), 1.0);
-                label.font = [target.font fontWithSize:MIN(MAX(target.font.pointSize * multiplier, 8.0), 420.0)];
+            NSString *displayText = text.length > 0 ? text : [self textForElement:element];
+            BOOL hasOriginalAction = target.sourceView && [self canTriggerOriginalActionForSourceView:target.sourceView];
+            UIView *textOverlay = nil;
+            if (hasOriginalAction) {
+                MUIForwardingButton *button = [[MUIForwardingButton alloc] initWithFrame:frame];
+                [button setTitle:displayText forState:UIControlStateNormal];
+                [button setTitleColor:target.textColor ?: UIColor.whiteColor forState:UIControlStateNormal];
+                button.titleLabel.numberOfLines = 0;
+                button.titleLabel.textAlignment = NSTextAlignmentCenter;
+                button.titleLabel.adjustsFontSizeToFitWidth = YES;
+                button.titleLabel.minimumScaleFactor = 0.25;
+                button.contentHorizontalAlignment = UIControlContentHorizontalAlignmentCenter;
+                button.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
+                CGFloat fontSize = MIN(MAX(CGRectGetHeight(frame) * 0.62, 8.0), 420.0);
+                if (target.font) {
+                    CGFloat multiplier = CGRectGetHeight(frame) / MAX(CGRectGetHeight(target.frameInRoot), 1.0);
+                    fontSize = MIN(MAX(target.font.pointSize * multiplier, 8.0), 420.0);
+                    button.titleLabel.font = [target.font fontWithSize:fontSize];
+                } else {
+                    button.titleLabel.font = [UIFont systemFontOfSize:fontSize weight:UIFontWeightSemibold];
+                }
+                button.backgroundColor = UIColor.clearColor;
+                button.accessibilityLabel = element[@"name"] ?: target.displayName;
+                __weak typeof(self) weakSelf = self;
+                __weak UIView *weakSource = target.sourceView;
+                button.tapHandler = ^{
+                    [weakSelf triggerOriginalActionForSourceView:weakSource];
+                };
+                textOverlay = button;
+            } else {
+                UILabel *label = [[UILabel alloc] initWithFrame:frame];
+                label.text = displayText;
+                label.backgroundColor = UIColor.clearColor;
+                label.userInteractionEnabled = NO;
+                [self styleTextLabel:label inFrame:frame];
+                if (target.textColor) label.textColor = target.textColor;
+                if (target.font) {
+                    CGFloat multiplier = CGRectGetHeight(frame) / MAX(CGRectGetHeight(target.frameInRoot), 1.0);
+                    label.font = [target.font fontWithSize:MIN(MAX(target.font.pointSize * multiplier, 8.0), 420.0)];
+                }
+                textOverlay = label;
             }
-            [host addSubview:label];
+            [host addSubview:textOverlay];
             if (target.sourceView) [self hideOriginalView:target.sourceView inRoot:rootView];
             continue;
         }
