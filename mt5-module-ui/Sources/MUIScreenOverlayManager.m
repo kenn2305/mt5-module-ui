@@ -432,6 +432,29 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
                       CGRectGetHeight(frame));
 }
 
+- (void)trackManagedOverlay:(UIView *)overlay forRoot:(UIView *)rootView {
+    if (!overlay || !rootView) return;
+    NSMutableArray<UIView *> *hosts = [self.scrollHostsByRoot objectForKey:rootView];
+    if (!hosts) {
+        hosts = [NSMutableArray array];
+        [self.scrollHostsByRoot setObject:hosts forKey:rootView];
+    }
+    if (![hosts containsObject:overlay]) [hosts addObject:overlay];
+}
+
+- (CGRect)parentFrameForExistingTextTarget:(MUIScreenCandidate *)target
+                                 rootFrame:(CGRect)frame {
+    UIView *sourceView = target.sourceView;
+    UIView *parent = sourceView.superview;
+    if (!sourceView || !parent) return frame;
+    CGFloat dx = CGRectGetMinX(frame) - CGRectGetMinX(target.frameInRoot);
+    CGFloat dy = CGRectGetMinY(frame) - CGRectGetMinY(target.frameInRoot);
+    return CGRectMake(CGRectGetMinX(sourceView.frame) + dx,
+                      CGRectGetMinY(sourceView.frame) + dy,
+                      CGRectGetWidth(frame),
+                      CGRectGetHeight(frame));
+}
+
 - (UIViewController *)topViewControllerFrom:(UIViewController *)controller {
     if (controller.presentedViewController) return [self topViewControllerFrom:controller.presentedViewController];
     if ([controller isKindOfClass:UINavigationController.class]) {
@@ -523,7 +546,11 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
             BOOL hasOriginalAction = target.sourceView && [self canTriggerOriginalActionForSourceView:target.sourceView];
             UIView *textParent = host;
             CGRect textFrame = frame;
-            if (!hasOriginalAction) {
+            BOOL parentAnchoredText = target.sourceView.superview != nil;
+            if (parentAnchoredText) {
+                textParent = target.sourceView.superview;
+                textFrame = [self parentFrameForExistingTextTarget:target rootFrame:frame];
+            } else if (!hasOriginalAction) {
                 UIScrollView *scrollView = target.sourceView
                     ? [self nearestScrollViewForView:target.sourceView]
                     : [self scrollViewAtRootPoint:CGPointMake(CGRectGetMidX(frame), CGRectGetMidY(frame))
@@ -584,6 +611,7 @@ static NSInteger const MUIScreenOverlayHostTag = 0x4D553149;
                 textOverlay = label;
             }
             [textParent addSubview:textOverlay];
+            if (textParent != host) [self trackManagedOverlay:textOverlay forRoot:rootView];
             if (target.sourceView) [self hideOriginalView:target.sourceView inRoot:rootView];
             continue;
         }
